@@ -15,8 +15,6 @@
 #define MOTOR_R_B  13
 #define MOTOR_R_S  3
 
-bool PAUSE = true;
-
 //************   Initialisation   ************
 
 Motor6612::Motor6612(){
@@ -88,8 +86,7 @@ void Motor6612::Stop(){
 //************   change la vitesse des moteurs   ************
 
 void Motor6612::Speed( int speedM, int diff ){
-    if ( !PAUSE ) Write( speedM + diff, speedM - diff );
-    else Stop();
+    Write( speedM + diff, speedM - diff );
 }
 
 //************   freine les moteurs   ************
