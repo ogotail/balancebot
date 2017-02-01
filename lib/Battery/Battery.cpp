@@ -23,13 +23,12 @@ Battery::~Battery(){
     /*nothing to destruct*/
 }
 
-char Battery::get(){
+float Battery::get(){
     if ( batNotRready ){
         prevCI = ( prevCI + 1 ) % AvgC ;
         prevC[ prevCI ] = analogRead( A0 ) / 1024.0 * 10 ;  // lecture de la batterie en volt
         float sum = 0 ;
         for ( int i = 0; i < prevCI; i++ ) sum += prevC[i] ;
-        //sendUdp( "bat " + String( sum / prevCI - 0.08 )) ;
         batNotRready -= 1 ;
         return sum / prevCI - 0.08;
     }

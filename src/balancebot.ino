@@ -1,7 +1,7 @@
 
-// ================================================================
-// ===                         Librairie                        ===
-// ================================================================
+// =============================================================================
+// ===                         Librairie                                     ===
+// =============================================================================
 
 #include <Arduino.h>
 
@@ -18,13 +18,11 @@
 // ************   UDP   ************
 #include <WiFiUdp.h>
 
-// ************   I2C   ************
-#include "Wire.h"
-
 // ************   IMU   ************
 // need i2cdevlib MPU6050
 // https://github.com/jrowberg/i2cdevlib/tree/master/Arduino/MPU6050
 #include "MPU6050_6Axis_MotionApps20.h"
+//#include "IMU.h"
 
 // ************   ENCODER   ************
 // need encoder
@@ -34,18 +32,12 @@
 //************   MOTEURS   ************
 #include "Motor6612.h"
 
+//************   BATTERY   ************
 #include "Battery.h"
 
-// ================================================================
-// ===                      PIN Configuration                   ===
-// ================================================================
-
-//************   IMU   ************
-// I2C
-#define IMU_SDA 10
-#define IMU_SCL 9
-// interuption
-#define IMU_INT 14
+// =============================================================================
+// ===                      PIN Configuration                                ===
+// =============================================================================
 
 //************   ENCODER   ************
 // ENCODER Left
@@ -55,9 +47,9 @@
 #define ENCODER_R_F  1
 #define ENCODER_R_B  15
 
-// ================================================================
-// ===                       Variable Global                    ===
-// ================================================================
+// =============================================================================
+// ===                       Variable Global                                 ===
+// =============================================================================
 
 String MODE = "" ;
 
@@ -75,18 +67,14 @@ String SEND = "" ;
 Encoder EncL( ENCODER_L_F, ENCODER_L_B );
 Encoder EncR( ENCODER_R_F, ENCODER_R_B );
 
-//************   Motor   ************
-Motor6612 Mot;
+//************   Imu   ************
+//IMU Imu6050;
 
-Battery bat;
+// =============================================================================
+// ===                            WIFI                                       ===
+// =============================================================================
 
-
-// ================================================================
-// ===                            WIFI                          ===
-// ================================================================
-
-void InitWifi()
-{
+void InitWifi(){
     // essaye de ce connecter a un reseau
 
     // en premier a celui donne
@@ -96,8 +84,7 @@ void InitWifi()
     WiFi.begin( ssid, password );
 
     // si la connection est un echec
-    if( WiFi.waitForConnectResult() != WL_CONNECTED )
-    {
+    if( WiFi.waitForConnectResult() != WL_CONNECTED ){
         // cree un reseau
         //Serial.println( "Connection Failed! Configuring access point..." );
         //Serial.print( "ESSID : testapesp   IP : " );
@@ -105,16 +92,15 @@ void InitWifi()
         IPAddress myIP = WiFi.softAPIP();
         //Serial.println( myIP );
     }
-    else
-    {
+    else{
         Serial.print( "Connected ! IP : " );
         Serial.println( WiFi.localIP() );
     }
 }
 
-// ================================================================
-// ===                            UDP                           ===
-// ================================================================
+// =============================================================================
+// ===                            UDP                                        ===
+// =============================================================================
 
 //************   Variables   ************
 
@@ -129,19 +115,12 @@ unsigned int Port ;
 char packetBuffer[ UDP_TX_PACKET_MAX_SIZE ];
 
 //************   Initialisation   ************
-
-void InitUdp()
-{
-    //////Serial.print( "Udp server started at port " );
-    //////Serial.println( localPort );
+void InitUdp(){
     Udp.begin( localPort );
-    //multicas_at_start_esp8266();
 }
 
 //************   Envoie   ************
-
-void sendUdp(String msg)
-{
+void sendUdp(String msg){
     // envoie le message au client
     Udp.beginPacket( Ip, Port ); //Send message to Packet-Sender
     Udp.write( msg.c_str() );
@@ -149,103 +128,59 @@ void sendUdp(String msg)
 }
 
 //************   Reception   ************
-
-String readUdp()
-{
+String readUdp(){
     int packetSize = Udp.parsePacket();
-    if ( packetSize )
-    {
+    if ( packetSize ){
         CONNECTED = 1;
         PAUSE = false ;
         Ip = Udp.remoteIP() ;
         Port = Udp.remotePort();
 
-        ////Serial.print( millis() / 1000 );
-        ////Serial.print( ":Packet of " );
-        ////Serial.print( packetSize );
-        ////Serial.print( " received from " );
-        ////Serial.print( Ip );
-        ////Serial.print( ":" );
-        ////Serial.println( Port );
-
         // We've received a packet, read the data from it
-        Udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE); // read the packet into the buffer
-
-        // display the packet contents
-        ////Serial.print( "Contents : " );
-        ////Serial.println( packetBuffer );
-
+        Udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
+        // read the packet into the buffer
         return packetBuffer ;
     }
     return "";
 }
 
-// ================================================================
-// ===                            OTA                           ===
-// ================================================================
+// =============================================================================
+// ===                            OTA                                        ===
+// =============================================================================
 
 //************   Initialisation   ************
-
-void InitOta()
-{
+void InitOta(){
     // Configure la mise a jour par wifi
-
-    // Port defaults to 8266
-    // ArduinoOTA.setPort(8266);
-
-    // Hostname defaults to esp8266-[ChipID]
-    // ArduinoOTA.setHostname("myesp8266");
-
-    // No authentication by default
-    // ArduinoOTA.setPassword((const char *)"123");
-
     // Action a faire avant la mise a jour
-    ArduinoOTA.onStart([]()
-    {
-        ////Serial.println( "Start" );
-    });
-
+    ArduinoOTA.onStart([](){});
     // Action a faire apres la mise a jour ( avant reboot )
-    ArduinoOTA.onEnd([]()
-    {
-        ////Serial.println( "\nEnd" );
-    });
-
+    ArduinoOTA.onEnd([](){});
     // Action a faire pendans la mise a jour
-    ArduinoOTA.onProgress([]( unsigned int progress, unsigned int total )
-    {
-        ////Serial.printf( "Progress: %u%%\r", ( progress / ( total / 100 ) ) );
-    });
-
+    ArduinoOTA.onProgress([]( unsigned int progress, unsigned int total ){});
     // Action a faire en cas d erreur de la mise a jour
-    ArduinoOTA.onError([]( ota_error_t error )
-    {
-        ////Serial.printf( "Error[%u]: ", error );
-        //if ( error == OTA_AUTH_ERROR ) ////Serial.println( "Auth Failed" );
-        //else if ( error == OTA_BEGIN_ERROR ) ////Serial.println( "Begin Failed" );
-        //else if ( error == OTA_CONNECT_ERROR ) ////Serial.println( "Connect Failed" );
-        //else if ( error == OTA_RECEIVE_ERROR ) ////Serial.println( "Receive Failed" );
-        //else if ( error == OTA_END_ERROR ) ////Serial.println( "End Failed" );
-    });
-
+    ArduinoOTA.onError([]( ota_error_t error ){});
     ArduinoOTA.begin();
-    ////Serial.println( "OTA Mode Ready" );
+    //Serial.println( "OTA Mode Ready" );
 }
 
 //************   Routine   ************
-
-void checkOta()
-{
+void checkOta(){
     // a mettre dans la boucle pour attendre une mise a jour
     ArduinoOTA.handle();
 }
 
-// ================================================================
-// ===                            IMU                           ===
-// ================================================================
+// =============================================================================
+// ===                            IMU                                        ===
+// =============================================================================
+
+//************   IMU   ************
+// I2C
+#define IMU_SDA 10
+#define IMU_SCL 9
+// interuption
+#define IMU_INT 14
 
 //************   Variables   ************
-
 MPU6050 mpu;
 
 // status vars
@@ -265,8 +200,7 @@ float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gra
 
 //************   Initialisation   ************
 
-void InitImu()
-{
+void InitImu(){
     // join I2C bus (I2Cdev library doesn't do this automatically)
     Wire.begin( IMU_SDA, IMU_SCL );
 
@@ -290,8 +224,7 @@ void InitImu()
     mpu.setZGyroOffset(25);
 
     // make sure it worked (returns 0 if so)
-    if (devStatus == 0)
-    {
+    if (devStatus == 0){
         // turn on the DMP, now that it's ready
         mpu.setDMPEnabled(true);
 
@@ -304,22 +237,17 @@ void InitImu()
 }
 
 //************   Mise a jour des angles   ************
-
-float UpdateAngles()
-{
-  if ( dmpReady )
-  {
+float UpdateAngles(){
+    if ( dmpReady ){
         // get current FIFO count
         fifoCount = mpu.getFIFOCount();
 
         // verifie si un packet est present
         // A CHANGER !!! pour utiliser les interuptions ( if => while )
         if ( fifoCount < packetSize) return 0;
-        else
-        {
+        else {
             // read all packet from FIFO until the last
-            while (fifoCount >= packetSize)
-            {
+            while (fifoCount >= packetSize){
                 mpu.getFIFOBytes(fifoBuffer, packetSize);
                 fifoCount = mpu.getFIFOCount();
             }
@@ -338,40 +266,21 @@ float UpdateAngles()
     else return 0;
 }
 
-// ================================================================
-// ===                          ENCODER                         ===
-// ================================================================
+// =============================================================================
+// ===                          ENCODER                                      ===
+// =============================================================================
 
 //************   Initialisation   ************
 
-void InitEnc()
-{
-    Encoder EncL( ENCODER_L_F, ENCODER_L_B );
-    Encoder EncR( ENCODER_R_F, ENCODER_R_B );
-}
+void EncLF(){sendUdp( "encoder L F " + String(digitalRead( ENCODER_L_F )));}
 
-void EncLF()
-{
-    sendUdp( "encoder L F " + String(digitalRead( ENCODER_L_F )));
-}
+void EncLB(){sendUdp( "encoder L B " + String(digitalRead( ENCODER_L_B )));}
 
-void EncLB()
-{
-    sendUdp( "encoder L B " + String(digitalRead( ENCODER_L_B )));
-}
+void EncRF(){sendUdp( "encoder R F " + String(digitalRead( ENCODER_R_F )));}
 
-void EncRF()
-{
-    sendUdp( "encoder R F " + String(digitalRead( ENCODER_R_F )));
-}
+void EncRB(){sendUdp( "encoder R B " + String(digitalRead( ENCODER_R_B )));}
 
-void EncRB()
-{
-    sendUdp( "encoder R B " + String(digitalRead( ENCODER_R_B )));
-}
-
-void InitManEnc()
-{
+void InitManEnc(){
     pinMode(ENCODER_L_F, INPUT_PULLUP);
     pinMode(ENCODER_L_B, INPUT_PULLUP);
     pinMode(ENCODER_R_F, INPUT_PULLUP);
@@ -382,16 +291,16 @@ void InitManEnc()
     attachInterrupt(digitalPinToInterrupt( ENCODER_R_B ), EncRB, CHANGE );
 }
 
-void StopEnc()
-{
+void StopEnc(){
     detachInterrupt(digitalPinToInterrupt( ENCODER_L_F ) );
     detachInterrupt(digitalPinToInterrupt( ENCODER_L_B ) );
     detachInterrupt(digitalPinToInterrupt( ENCODER_R_F ) );
     detachInterrupt(digitalPinToInterrupt( ENCODER_R_B ) );
 }
-// ================================================================
-// ===                            PID                           ===
-// ================================================================
+
+// =============================================================================
+// ===                            PID                                        ===
+// =============================================================================
 
 //************   Coefficients   ************
 
@@ -429,8 +338,7 @@ int erreur_precedente_r = 0;
 
 //************   Modification des Coefficients   ************
 
-void set_pid( String data )
-{
+void set_pid( String data ){
     String commande = data.substring( 0, data.indexOf(' ') );
     float val = data.substring( data.indexOf(' ') ).toFloat();
     if ( commande == "kPs") Kps = val;
@@ -449,8 +357,7 @@ void set_pid( String data )
 
 //************   Envoie des Coefficients   ************
 
-String get_pid()
-{
+String get_pid(){
     String msg = "PID";
     msg += " kPs " + String( Kps );
     msg += " kIs " + String( Kis );
@@ -470,8 +377,7 @@ String get_pid()
 
 //************   Calcul du PID de Stabilisation   ************
 
-float stab(float Angle, float correction = 0 )
-{
+float stab(float Angle, float correction = 0 ){
     // joue sur la vitesse / direction des moteurs pour maintenir l equilibre
     // entree : angle => vitesse moteurs
 
@@ -499,8 +405,7 @@ float stab(float Angle, float correction = 0 )
     PID = constrain( (P + I + D) , -255, 255 );
 
     // envoie les valeurs
-    if ( SEND == "Stability" )
-    {
+    if ( SEND == "Stability" ){
         // envoie les valeurs
         sendUdp( "Stability " + String( millis() ) + " " + String( erreur ) + " " + String( PID ) + " " + String( P ) + " " + String( I ) + " " + String( D ) + " " );
     }
@@ -509,10 +414,10 @@ float stab(float Angle, float correction = 0 )
 
 //************   Calcul du PID de deplacement   ************
 
-float dep( int consigne = 0 )
-{
+float dep( int consigne = 0 ){
     // joue sur l angle pour maintenir la position / atteindre une position
-    // entree : valeurs des encodeurs + consigne de deplacement => sortie : correction d angle
+    // entree : valeurs des encodeurs + consigne de deplacement
+    // => sortie : correction d angle
 
     //variables
     int erreur ;
@@ -526,7 +431,7 @@ float dep( int consigne = 0 )
     P = Kpd * erreur ;
 
     // I
-    somme_erreur_d = constrain( somme_erreur_d + erreur / 10, -100, 100 );   // -100 100
+    somme_erreur_d = constrain( somme_erreur_d + erreur / 10, -100, 100 );
     I = Kid * somme_erreur_d ;
 
     // D
@@ -539,8 +444,7 @@ float dep( int consigne = 0 )
 
     // envoie les valeurs
     //Serial.println( SEND );
-    if ( SEND == "Deplacement" )
-    {
+    if ( SEND == "Deplacement" ){
         // envoie les valeurs
         sendUdp( "Deplacement " + String( millis() ) + " " + String( erreur ) + " " + String( PID ) + " " + String( P ) + " " + String( I ) + " " + String( D ) + " " );
     }
@@ -549,10 +453,10 @@ float dep( int consigne = 0 )
 
 //************   Calcul du PID de rotation   ************
 
-float rot( int consigne = 0)
-{
-    // joue sur la vitesse des moteurs gauche / droit pour maintenir la direction
-    // entree : valeurs des encodeurs + consigne de rotation => sortie : correction de rotation ( +G -D)
+float rot( int consigne = 0){
+    // joue sur la vitesse des moteurs gauche/droit pour maintenir la direction
+    // entree : valeurs des encodeurs + consigne de rotation
+    // => sortie : correction de rotation ( +G -D)
 
     //variables
     int erreur ;
@@ -566,7 +470,7 @@ float rot( int consigne = 0)
     P = Kpr * erreur ;
 
     // I
-    somme_erreur_r = constrain( somme_erreur_r + erreur, -100, 100 );   // -100 100
+    somme_erreur_r = constrain( somme_erreur_r + erreur, -100, 100 );
     I = Kir * somme_erreur_r ;
 
     // D
@@ -578,8 +482,7 @@ float rot( int consigne = 0)
     PID = constrain(  P + I + D , -20, 20);
 
     // envoie les valeurs
-    if ( SEND == "Rotation" )
-    {
+    if ( SEND == "Rotation" ){
         // envoie les valeurs
         sendUdp( "Rotation " + String( millis() ) + " " + String( erreur ) + " " + String( PID ) + " " + String( P ) + " " + String( I ) + " " + String( D ) + " " );
     }
@@ -588,65 +491,49 @@ float rot( int consigne = 0)
 
 //************   Mise a jour des vitesses   ************
 
-int updateSpeed(float angle, float correction)
-{
+int updateSpeed(float angle, float correction){
     // si chute
-    if ( angle > 30 || angle < -30 )
-    {
+    if ( angle > 30 || angle < -30 ){
         // arret des moteurs
         ////Serial.print("chute\t");
-        if ( SEND == "Stability" )
-        {
+        if ( SEND == "Stability" ){
              sendUdp( "Stability " + String( millis() ) + " " + String( -angle ) + " 0 0 0 0 ");
         }
         return 0;
     }
     // sinon calcul le PID
-    else
-    {
+    else{
         //calcul du PID
         return stab( angle, correction );
     }
 }
 
-// ================================================================
-// ===                          MOTORS                          ===
-// ================================================================
+// =============================================================================
+// ===                          MOTORS                                       ===
+// =============================================================================
 
-//Motor6612 Mot();
-//************   Initialisation   ************
-void InitMotors() {/*pass*/}
-//************   change la vitesse des moteurs   ************
-void motorsWrite(int speedL, int speedR) {Mot.Write(speedL, speedR);}
-//************   arret des moteurs   ************
-void motorsStop() {Mot.Stop();}
+Motor6612 Mot;
 //************   change la vitesse des moteurs   ************
 void motorsSpeed( int speedM, int diff = 0 ){
     if ( !PAUSE ) Mot.Speed(speedM, diff );
     else Mot.Stop();
 }
-//************   freine les moteurs   ************
-void motorsBrake() {Mot.Brake();}
 
-// ================================================================
-// ===                          BATTERY                         ===
-// ================================================================
+// =============================================================================
+// ===                          BATTERY                                      ===
+// =============================================================================
 
-//Battery bat;
-//************   Initialisation   ************
-void InitBattery() {/*pass*/}
+Battery bat;
 //************   cherche la valeur de la batterie   ************
-void Battery() {sendUdp( "bat " + bat.get());}
+void get_Battery() {sendUdp( "bat " + String(bat.get()) );}
 
 
-// ================================================================
-// ===                            FILE                          ===
-// ================================================================
+// =============================================================================
+// ===                            FILE                                       ===
+// =============================================================================
 
 //************   LOAD   ************
-
-bool loadConfig()
-{
+bool loadConfig(){
     SPIFFS.begin() ;
     // open file for reading.
     File configFile = SPIFFS.open( "/balancebot/conf.txt", "r" );
@@ -658,11 +545,9 @@ bool loadConfig()
 
     String commande = content.substring( 0, content.indexOf( " " ) );
 
-    if ( commande == "PID" )
-    {
+    if ( commande == "PID" ){
         content = content.substring( content.indexOf( " " ) + 1 );
-;       while ( !content.startsWith( "\r\n" ) )
-        {
+       while ( !content.startsWith( "\r\n" ) ){
             int pos = content.indexOf( " ", content.indexOf( " " ) + 1 );
             set_pid( content.substring( 0, pos ));
             content = content.substring( pos + 1 );
@@ -672,9 +557,7 @@ bool loadConfig()
 }
 
 //************   SAVE   ************
-
-bool saveConfig()
-{
+bool saveConfig(){
     // Open config file for writing.
     File configFile = SPIFFS.open( "/balancebot/conf.txt", "w+" );
     if ( !configFile ) return false;
@@ -684,15 +567,13 @@ bool saveConfig()
     return true;
 }
 
-// ================================================================
-// ===                          PARSER                          ===
-// ================================================================
+// =============================================================================
+// ===                          PARSER                                       ===
+// =============================================================================
 
-void parser( String packet )
-{
+void parser( String packet ){
     //
-    if ( packet != "" )
-    {
+    if ( packet != "" ){
         packet.trim() ;
         //Serial.println( packet ) ;
         sendUdp( "ar " + packet ) ;
@@ -704,8 +585,7 @@ void parser( String packet )
         else if ( commande == "get" ) SEND = data.substring( 0, data.indexOf(' ') ) ;
         else if ( commande == "PID" ) sendUdp( get_pid() ) ;
         else if ( commande == "save" ) sendUdp( "save " + String( saveConfig()) ) ;
-        else if ( commande == "PAUSE" )
-        {
+        else if ( commande == "PAUSE" ){
             if ( data.startsWith( "1" ) ) PAUSE = true;
             else PAUSE = false;
             sendUdp( "PAUSE " + String( PAUSE )) ;
@@ -713,30 +593,24 @@ void parser( String packet )
     }
 }
 
-void receivemsg()
-{
+void receivemsg(){
     String msg = readUdp() ;
     if ( msg ) parser( msg ) ;
 }
 
-// ================================================================
-// ===                           MODE                           ===
-// ================================================================
+// =============================================================================
+// ===                           MODE                                        ===
+// =============================================================================
 
 //************   Run   ************
-
-void ModeRun()
-{
-    InitMotors();
-    //InitEnc();
+void ModeRun(){
     InitImu();
     loadConfig();
-    mpu.resetFIFO();
+    //mpu.resetFIFO();
 
-    while ( MODE == "RUN" )
-    {
+    while ( MODE == "RUN" ){
         receivemsg() ;
-        Battery();
+        get_Battery();
         //sendUdp( "RUN" ) ;
         float angle;
         angle = UpdateAngles();
@@ -747,51 +621,39 @@ void ModeRun()
 }
 
 //************   OTA   ************
-
-void ModeOTA()
-{
+void ModeOTA(){
     InitOta();
-    while ( MODE == "OTA" )
-    {
+    while ( MODE == "OTA" ){
         receivemsg() ;
-        Battery();
+        get_Battery();
         checkOta();
     }
 }
 
 //************   Cal   ************
-
-void  Modecal()
-{
-    InitMotors();
-    //InitEnc();
+void  Modecal(){
     InitImu();
     InitManEnc();
-    while ( MODE == "CAL" )
-    {
+    while ( MODE == "CAL" ){
         receivemsg() ;
-        Battery();
+        get_Battery();
     }
     StopEnc();
 }
 
-// ================================================================
-// ===                           MAIN                           ===
-// ================================================================
+// =============================================================================
+// ===                           MAIN                                        ===
+// =============================================================================
 
-void setup()
-{
-    InitMotors();
-    InitBattery();
+void setup(){
     InitWifi();
     InitUdp();
-    Battery();
+    get_Battery();
 }
 
-void loop()
-{
+void loop(){
     receivemsg() ;
-    Battery() ;
+    get_Battery() ;
     if ( MODE == "OTA" ) ModeOTA() ;
     else if ( MODE == "RUN" ) ModeRun() ;
     else if ( MODE == "CAL" ) Modecal() ;

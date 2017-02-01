@@ -7,7 +7,7 @@ class Battery{
     public:
         Battery();
         ~Battery();
-        char get();
+        float get();
 };
 
 #endif
