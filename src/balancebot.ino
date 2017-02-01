@@ -34,6 +34,8 @@
 //************   MOTEURS   ************
 #include "Motor6612.h"
 
+#include "Battery.h"
+
 // ================================================================
 // ===                      PIN Configuration                   ===
 // ================================================================
@@ -70,8 +72,14 @@ bool CONNECTED = 0 ;
 String SEND = "" ;
 
 //************   ENCODER   ************
-//Encoder EncL( ENCODER_L_F, ENCODER_L_B );
-//Encoder EncR( ENCODER_R_F, ENCODER_R_B );
+Encoder EncL( ENCODER_L_F, ENCODER_L_B );
+Encoder EncR( ENCODER_R_F, ENCODER_R_B );
+
+//************   Motor   ************
+Motor6612 Mot;
+
+Battery bat;
+
 
 // ================================================================
 // ===                            WIFI                          ===
@@ -605,70 +613,31 @@ int updateSpeed(float angle, float correction)
 // ===                          MOTORS                          ===
 // ================================================================
 
+//Motor6612 Mot();
 //************   Initialisation   ************
-void InitMotors(){
-    MOTOR6612 mot();
-}
-
+void InitMotors() {/*pass*/}
 //************   change la vitesse des moteurs   ************
-void motorsWrite(int speedL, int speedR){
-    mot.Write(speedL, speedR);
-}
-
+void motorsWrite(int speedL, int speedR) {Mot.Write(speedL, speedR);}
 //************   arret des moteurs   ************
-void motorsStop(){
-    mot.Stop();
-}
-
+void motorsStop() {Mot.Stop();}
 //************   change la vitesse des moteurs   ************
 void motorsSpeed( int speedM, int diff = 0 ){
-    mot.Speed(speedM, diff );
+    if ( !PAUSE ) Mot.Speed(speedM, diff );
+    else Mot.Stop();
 }
-
 //************   freine les moteurs   ************
-void motorsBrake(){
-    mot.Brake();
-}
+void motorsBrake() {Mot.Brake();}
 
 // ================================================================
 // ===                          BATTERY                         ===
 // ================================================================
 
-// variables pour la battery
-const int AvgC = 10;
-float prevC[AvgC];
-int prevCI = 0;
-long batTemp;
-int batNotRready = AvgC ;
+//Battery bat;
+//************   Initialisation   ************
+void InitBattery() {/*pass*/}
+//************   cherche la valeur de la batterie   ************
+void Battery() {sendUdp( "bat " + bat.get());}
 
-void InitBattery()
-{
-    pinMode( A0, INPUT ) ;
-    prevC[prevCI] = analogRead( A0 ) / 1024.0 * 10 ;
-    batTemp = millis() + 100 ;
-}
-
-void Battery()
-{
-    if ( batNotRready )
-    {
-        prevCI = ( prevCI + 1 ) % AvgC ;
-        prevC[ prevCI ] = analogRead( A0 ) / 1024.0 * 10 ;  // lecture de la batterie en volt
-        float sum = 0 ;
-        for ( int i = 0; i < prevCI; i++ ) sum += prevC[i] ;
-        sendUdp( "bat " + String( sum / prevCI - 0.08 )) ;
-        batNotRready -= 1 ;
-    }
-    else if ( batTemp < millis() )
-    {
-        prevCI = (prevCI + 1) % AvgC ;
-        prevC[prevCI] = analogRead( A0 ) / 1024.0 * 10 ;  // lecture de la batterie en volt
-        float sum = 0 ;
-        for ( int i = 0; i < AvgC; i++ ) sum += prevC[i] ;
-        sendUdp( "bat " + String( sum / AvgC - 0.08 )) ;
-        batTemp = millis() + 500 ;
-    }
-}
 
 // ================================================================
 // ===                            FILE                          ===
