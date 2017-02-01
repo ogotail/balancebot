@@ -9,7 +9,7 @@ class Motor6612{
         ~Motor6612();
         void Write(int speedL, int speedR);
         void Stop();
-        void Speed( int speedM, int diff = 0 );
+        void Speed(int speedM, int diff=0);
         void Brake();
 };
 
