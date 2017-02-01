@@ -24,7 +24,6 @@
 
 // ************   IMU   ************
 
-//#include "I2Cdev.h"
 #include "Wire.h"
 
 // need i2cdevlib MPU6050
