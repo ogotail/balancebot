@@ -6,35 +6,33 @@
 #include <Arduino.h>
 
 // ************   FILE   ************
-
 #include <FS.h>
 
 // ************   WIFI   ************
-
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 
 // ************   OTA   ************
-
 #include <ArduinoOTA.h>
 
 // ************   UDP   ************
-
 #include <WiFiUdp.h>
 
-// ************   IMU   ************
-
+// ************   I2C   ************
 #include "Wire.h"
 
+// ************   IMU   ************
 // need i2cdevlib MPU6050
 // https://github.com/jrowberg/i2cdevlib/tree/master/Arduino/MPU6050
 #include "MPU6050_6Axis_MotionApps20.h"
 
 // ************   ENCODER   ************
-
 // need encoder
 // https://github.com/PaulStoffregen/Encoder
 #include <Encoder.h>
+
+//************   MOTEURS   ************
+#include "Motor6612.h"
 
 // ================================================================
 // ===                      PIN Configuration                   ===
@@ -47,19 +45,7 @@
 // interuption
 #define IMU_INT 14
 
-//************   MOTEURS   ************
-
-// Motor Left
-#define MOTOR_L_F  16
-#define MOTOR_L_B  0
-#define MOTOR_L_S  2
-// MOTOR Right
-#define MOTOR_R_F  12
-#define MOTOR_R_B  13
-#define MOTOR_R_S  3
-
 //************   ENCODER   ************
-
 // ENCODER Left
 #define ENCODER_L_F  4
 #define ENCODER_L_B  5
@@ -76,19 +62,16 @@ String MODE = "" ;
 bool PAUSE = true;
 
 // ************   WIFI   ************
-
 const char* ssid = "CathyMath";
 const char* password = "4362626262";
 
 // ************   COMMUNICATION   ************
-
 bool CONNECTED = 0 ;
 String SEND = "" ;
 
 //************   ENCODER   ************
-
-Encoder EncL( ENCODER_L_F, ENCODER_L_B );
-Encoder EncR( ENCODER_R_F, ENCODER_R_B );
+//Encoder EncL( ENCODER_L_F, ENCODER_L_B );
+//Encoder EncR( ENCODER_R_F, ENCODER_R_B );
 
 // ================================================================
 // ===                            WIFI                          ===
@@ -623,101 +606,28 @@ int updateSpeed(float angle, float correction)
 // ================================================================
 
 //************   Initialisation   ************
-
-void InitMotors()
-{
-    //Motor Left SETUP
-    pinMode(MOTOR_L_S, OUTPUT);
-    analogWrite(MOTOR_L_S, 0);
-    pinMode(MOTOR_L_F, OUTPUT);
-    digitalWrite(MOTOR_L_F, LOW);
-    pinMode(MOTOR_L_B, OUTPUT);
-    digitalWrite(MOTOR_L_B, LOW);
-
-    //Motor Right SETUP
-    pinMode(MOTOR_R_S, OUTPUT);
-    analogWrite(MOTOR_R_S, 0);
-    pinMode(MOTOR_R_F, OUTPUT);
-    digitalWrite(MOTOR_R_F, LOW);
-    pinMode(MOTOR_R_B, OUTPUT);
-    digitalWrite(MOTOR_R_B, LOW);
-
-    analogWriteRange(255);
+void InitMotors(){
+    MOTOR6612 mot();
 }
 
 //************   change la vitesse des moteurs   ************
-
-void motorsWrite(int speedL, int speedR)
-{
-    // ajuste la vitesse et direction des MOTORS
-
-    ////Serial.println( "MOTOR_L : " + String( speedL ) + "MOTOR_R : " + String( speedR ) );
-    if( speedR >= 0 )
-    {
-        digitalWrite( MOTOR_L_B, LOW);
-        analogWrite( MOTOR_L_S, speedR );
-        digitalWrite( MOTOR_L_F, HIGH);
-        //dirD = 1;
-    }
-    else
-    {
-        digitalWrite( MOTOR_L_F, LOW);
-        analogWrite( MOTOR_L_S, -speedR );
-        digitalWrite( MOTOR_L_B, HIGH);
-        //dirD = -1;
-    }
-    if( speedL >= 0 )
-    {
-        digitalWrite( MOTOR_R_B, LOW);
-        analogWrite( MOTOR_R_S, speedL );
-        digitalWrite( MOTOR_R_F, HIGH);
-        //dirG = 1;
-    }
-    else
-    {
-        digitalWrite( MOTOR_R_F, LOW);
-        analogWrite( MOTOR_R_S, -speedL );
-        digitalWrite( MOTOR_R_B, HIGH);
-        //dirG = -1;
-    }
+void motorsWrite(int speedL, int speedR){
+    mot.Write(speedL, speedR);
 }
 
 //************   arret des moteurs   ************
-
-void motorsStop()
-{
-    // stop les MOTORs => roues libre
-    analogWrite( MOTOR_L_S, 0 );
-    analogWrite( MOTOR_R_S, 0 );
+void motorsStop(){
+    mot.Stop();
 }
 
 //************   change la vitesse des moteurs   ************
-
-void motorsSpeed( int speedM, int diff = 0 )
-{
-    if ( !PAUSE ) motorsWrite( speedM + diff, speedM - diff );
-    else motorsStop();
+void motorsSpeed( int speedM, int diff = 0 ){
+    mot.Speed(speedM, diff );
 }
 
 //************   freine les moteurs   ************
-
-void motorsBrake()
-{
-    // Freine les MOTORs => roues Bloquees
-    digitalWrite( MOTOR_L_F, HIGH );
-    digitalWrite( MOTOR_L_B, HIGH );
-    digitalWrite( MOTOR_R_F, HIGH );
-    digitalWrite( MOTOR_R_B, HIGH );
-    analogWrite( MOTOR_L_S, 255 );
-    analogWrite( MOTOR_R_S, 255 );
-
-    delay(100); // relache les roues apres 100ms pour pas tout cramer
-    digitalWrite( MOTOR_L_F, LOW );
-    digitalWrite( MOTOR_L_B, LOW );
-    digitalWrite( MOTOR_R_F, LOW );
-    digitalWrite( MOTOR_R_B, LOW );
-    analogWrite( MOTOR_L_S, 0 );
-    analogWrite( MOTOR_R_S, 0 );
+void motorsBrake(){
+    mot.Brake();
 }
 
 // ================================================================
