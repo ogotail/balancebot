@@ -1,4 +1,3 @@
-
 // =============================================================================
 // ===                         Librairie                                     ===
 // =============================================================================
@@ -19,14 +18,12 @@
 #include <WiFiUdp.h>
 
 // ************   IMU   ************
-// need i2cdevlib MPU6050
-// https://github.com/jrowberg/i2cdevlib/tree/master/Arduino/MPU6050
+// need https://github.com/jrowberg/i2cdevlib/tree/master/Arduino/MPU6050
 #include "MPU6050_6Axis_MotionApps20.h"
 //#include "IMU.h"
 
 // ************   ENCODER   ************
-// need encoder
-// https://github.com/PaulStoffregen/Encoder
+// need https://github.com/PaulStoffregen/Encoder
 #include <Encoder.h>
 
 //************   MOTEURS   ************
@@ -265,30 +262,30 @@ float UpdateAngles(){
 
 //************   Initialisation   ************
 
-void EncLF(){sendUdp( "encoder L F " + String(digitalRead( ENCODER_L_F )));}
+void EncLF(){sendUdp( "encoder L F " + String( digitalRead( ENCODER_L_F )));}
 
-void EncLB(){sendUdp( "encoder L B " + String(digitalRead( ENCODER_L_B )));}
+void EncLB(){sendUdp( "encoder L B " + String( digitalRead( ENCODER_L_B )));}
 
-void EncRF(){sendUdp( "encoder R F " + String(digitalRead( ENCODER_R_F )));}
+void EncRF(){sendUdp( "encoder R F " + String( digitalRead( ENCODER_R_F )));}
 
-void EncRB(){sendUdp( "encoder R B " + String(digitalRead( ENCODER_R_B )));}
+void EncRB(){sendUdp( "encoder R B " + String( digitalRead( ENCODER_R_B )));}
 
 void InitManEnc(){
-    pinMode(ENCODER_L_F, INPUT_PULLUP);
-    pinMode(ENCODER_L_B, INPUT_PULLUP);
-    pinMode(ENCODER_R_F, INPUT_PULLUP);
-    pinMode(ENCODER_R_B, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt( ENCODER_L_F ), EncLF, CHANGE );
-    attachInterrupt(digitalPinToInterrupt( ENCODER_L_B ), EncLB, CHANGE );
-    attachInterrupt(digitalPinToInterrupt( ENCODER_R_F ), EncRF, CHANGE );
-    attachInterrupt(digitalPinToInterrupt( ENCODER_R_B ), EncRB, CHANGE );
+    pinMode( ENCODER_L_F, INPUT_PULLUP );
+    pinMode( ENCODER_L_B, INPUT_PULLUP );
+    pinMode( ENCODER_R_F, INPUT_PULLUP );
+    pinMode( ENCODER_R_B, INPUT_PULLUP );
+    attachInterrupt( digitalPinToInterrupt( ENCODER_L_F ), EncLF, CHANGE );
+    attachInterrupt( digitalPinToInterrupt( ENCODER_L_B ), EncLB, CHANGE );
+    attachInterrupt( digitalPinToInterrupt( ENCODER_R_F ), EncRF, CHANGE );
+    attachInterrupt( digitalPinToInterrupt( ENCODER_R_B ), EncRB, CHANGE );
 }
 
 void StopEnc(){
-    detachInterrupt(digitalPinToInterrupt( ENCODER_L_F ) );
-    detachInterrupt(digitalPinToInterrupt( ENCODER_L_B ) );
-    detachInterrupt(digitalPinToInterrupt( ENCODER_R_F ) );
-    detachInterrupt(digitalPinToInterrupt( ENCODER_R_B ) );
+    detachInterrupt( digitalPinToInterrupt( ENCODER_L_F ) );
+    detachInterrupt( digitalPinToInterrupt( ENCODER_L_B ) );
+    detachInterrupt( digitalPinToInterrupt( ENCODER_R_F ) );
+    detachInterrupt( digitalPinToInterrupt( ENCODER_R_B ) );
 }
 
 // =============================================================================
@@ -419,18 +416,13 @@ void receivemsg(){
 void ModeRun(){
     InitImu();
     loadConfig();
-    //mpu.resetFIFO();
-
     while ( MODE == "RUN" ){
         receivemsg() ;
         get_Battery();
-        //sendUdp( "RUN" ) ;
         float angle = UpdateAngles();
         if ( angle ) {
             motorsSpeed( updateSpeed( angle  )); //, dep(), rot() );
         }
-        //rot();
-        //sendUdp( String( angle ) );
     }
 }
 
