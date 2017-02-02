@@ -35,6 +35,9 @@
 //************   BATTERY   ************
 #include "Battery.h"
 
+//************   PID   ************
+#include "PID.h"
+
 // =============================================================================
 // ===                      PIN Configuration                                ===
 // =============================================================================
@@ -199,38 +202,29 @@ VectorFloat gravity;    // [x, y, z]            gravity vector
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 
 //************   Initialisation   ************
-
 void InitImu(){
     // join I2C bus (I2Cdev library doesn't do this automatically)
     Wire.begin( IMU_SDA, IMU_SCL );
-
     // initialize device
     mpu.initialize();
-
     // verify connection
     mpu.testConnection();
-
     // load and configure the DMP
     devStatus = mpu.dmpInitialize();
-
     // Setup Accel offsets
     mpu.setXAccelOffset(-7029);
     mpu.setYAccelOffset(-1294);
     mpu.setZAccelOffset(1200);
-
     // Setup gyro offsets
     mpu.setXGyroOffset(147);
     mpu.setYGyroOffset(72);
     mpu.setZGyroOffset(25);
-
     // make sure it worked (returns 0 if so)
     if (devStatus == 0){
         // turn on the DMP, now that it's ready
         mpu.setDMPEnabled(true);
-
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
         dmpReady = true;
-
         // get expected DMP packet size for later comparison
         packetSize = mpu.dmpGetFIFOPacketSize();
     }
@@ -241,7 +235,6 @@ float UpdateAngles(){
     if ( dmpReady ){
         // get current FIFO count
         fifoCount = mpu.getFIFOCount();
-
         // verifie si un packet est present
         // A CHANGER !!! pour utiliser les interuptions ( if => while )
         if ( fifoCount < packetSize) return 0;
@@ -253,12 +246,10 @@ float UpdateAngles(){
             }
             // nettoie les miettes
             if (fifoCount != 0) mpu.resetFIFO();
-
             // Transformation geometrique
             mpu.dmpGetQuaternion(&q, fifoBuffer);
             mpu.dmpGetGravity(&gravity, &q);
             mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-
             // et renvoie l angle par rapport la vertical en degree
             return (ypr[1] * 180/M_PI);
         }
@@ -301,218 +292,40 @@ void StopEnc(){
 // =============================================================================
 // ===                            PID                                        ===
 // =============================================================================
-
-//************   Coefficients   ************
-
-// kPID Stabilite
-float Kps = 39;
-float Kis = 6.6;
-float Kds = 59.5;
-float Vertical = 1.9;
-
-// kPID Deplacement
-float Kpd = 0.3;
-float Kid = 0;
-float Kdd = 2;
-int Origine = 0;
-
-// kPID Rotation
-float Kpr = 0;
-float Kir = 0;
-float Kdr = 0;
-int Direction = 0;
-
-//************   Variables   ************
-
-// variable pid Stabilisation
-float somme_erreurs_s = 0;
-float erreur_precedente_s = 0;
-
-// variable pid deplacement
-float somme_erreur_d = 0;
-int erreur_precedente_d = 0;
-
-// variable pid rotation
-float somme_erreur_r = 0;
-int erreur_precedente_r = 0;
+PID Pid;
 
 //************   Modification des Coefficients   ************
-
-void set_pid( String data ){
-    String commande = data.substring( 0, data.indexOf(' ') );
-    float val = data.substring( data.indexOf(' ') ).toFloat();
-    if ( commande == "kPs") Kps = val;
-    else if ( commande == "kIs" ) Kis = val ;
-    else if ( commande == "kDs" ) Kds = val ;
-    else if ( commande == "kPd" ) Kpd = val ;
-    else if ( commande == "kId" ) Kid = val ;
-    else if ( commande == "kDd" ) Kdd = val ;
-    else if ( commande == "kPr" ) Kpr = val ;
-    else if ( commande == "kIr" ) Kir = val ;
-    else if ( commande == "kDr" ) Kdr = val ;
-    else if ( commande == "Vertical" ) Vertical = val ;
-    else if ( commande == "Origine" ) Origine = int( val );
-    else if ( commande == "Direction" ) Direction = int( val );
-}
+void set_pid( String data ){Pid.set(data);}
 
 //************   Envoie des Coefficients   ************
-
-String get_pid(){
-    String msg = "PID";
-    msg += " kPs " + String( Kps );
-    msg += " kIs " + String( Kis );
-    msg += " kDs " + String( Kds );
-    msg += " kPd " + String( Kpd );
-    msg += " kId " + String( Kid );
-    msg += " kDd " + String( Kdd );
-    msg += " kPr " + String( Kpr );
-    msg += " kIr " + String( Kir );
-    msg += " kDr " + String( Kdr );
-    msg += " Vertical " + String( Vertical );
-    msg += " Origine " + String( Origine );
-    msg += " Direction " + String( Direction );
-    msg += " " ;
-    return msg ;
-}
-
-//************   Calcul du PID de Stabilisation   ************
-
-float stab(float Angle, float correction = 0 ){
-    // joue sur la vitesse / direction des moteurs pour maintenir l equilibre
-    // entree : angle => vitesse moteurs
-
-    //variables
-    float erreur ;
-    float P ;
-    float I ;
-    float D ;
-    float PID;
-
-    // P
-    erreur = Vertical - Angle - correction ;
-    P = Kps * erreur ;
-
-    // I
-    somme_erreurs_s = constrain( somme_erreurs_s + erreur / 10 , -100, 100 );
-    I = Kis * somme_erreurs_s ;
-
-    // D
-    D = Kds * ( erreur - erreur_precedente_s );
-    erreur_precedente_s = erreur ;
-
-    // PID
-    // limitation du PID
-    PID = constrain( (P + I + D) , -255, 255 );
-
-    // envoie les valeurs
-    if ( SEND == "Stability" ){
-        // envoie les valeurs
-        sendUdp( "Stability " + String( millis() ) + " " + String( erreur ) + " " + String( PID ) + " " + String( P ) + " " + String( I ) + " " + String( D ) + " " );
-    }
-    return PID ;
-}
-
-//************   Calcul du PID de deplacement   ************
-
-float dep( int consigne = 0 ){
-    // joue sur l angle pour maintenir la position / atteindre une position
-    // entree : valeurs des encodeurs + consigne de deplacement
-    // => sortie : correction d angle
-
-    //variables
-    int erreur ;
-    float P ;
-    float I ;
-    float D ;
-    float PID;
-
-    // P
-    erreur = - Origine - (EncL.read()+ EncR.read())/2 - consigne ;
-    P = Kpd * erreur ;
-
-    // I
-    somme_erreur_d = constrain( somme_erreur_d + erreur / 10, -100, 100 );
-    I = Kid * somme_erreur_d ;
-
-    // D
-    D = Kdd * ( erreur - erreur_precedente_d );
-    erreur_precedente_d = erreur ;
-
-    // PID
-    // limitation du PID
-    PID = constrain( (P + I + D) / 10 , -5, 5 );
-
-    // envoie les valeurs
-    //Serial.println( SEND );
-    if ( SEND == "Deplacement" ){
-        // envoie les valeurs
-        sendUdp( "Deplacement " + String( millis() ) + " " + String( erreur ) + " " + String( PID ) + " " + String( P ) + " " + String( I ) + " " + String( D ) + " " );
-    }
-    return PID ;
-}
-
-//************   Calcul du PID de rotation   ************
-
-float rot( int consigne = 0){
-    // joue sur la vitesse des moteurs gauche/droit pour maintenir la direction
-    // entree : valeurs des encodeurs + consigne de rotation
-    // => sortie : correction de rotation ( +G -D)
-
-    //variables
-    int erreur ;
-    float P ;
-    float I ;
-    float D ;
-    float PID;
-
-    // P
-    erreur = Direction - consigne - EncL.read() + EncR.read() ;
-    P = Kpr * erreur ;
-
-    // I
-    somme_erreur_r = constrain( somme_erreur_r + erreur, -100, 100 );
-    I = Kir * somme_erreur_r ;
-
-    // D
-    D = Kdr * ( erreur = - erreur_precedente_r) ;
-    erreur_precedente_r = erreur ;
-
-    // PID
-    // limitation du PID
-    PID = constrain(  P + I + D , -20, 20);
-
-    // envoie les valeurs
-    if ( SEND == "Rotation" ){
-        // envoie les valeurs
-        sendUdp( "Rotation " + String( millis() ) + " " + String( erreur ) + " " + String( PID ) + " " + String( P ) + " " + String( I ) + " " + String( D ) + " " );
-    }
-    return PID ;
-}
+String get_pid(){return Pid.get();}
 
 //************   Mise a jour des vitesses   ************
-
 int updateSpeed(float angle, float correction){
     // si chute
     if ( angle > 30 || angle < -30 ){
-        // arret des moteurs
         ////Serial.print("chute\t");
         if ( SEND == "Stability" ){
-             sendUdp( "Stability " + String( millis() ) + " " + String( -angle ) + " 0 0 0 0 ");
+             sendUdp( "Stability " + String( millis() ) + " "
+             + String( -angle ) + " 0 0 0 0 ");
         }
+        // arret des moteurs
         return 0;
     }
     // sinon calcul le PID
     else{
-        //calcul du PID
-        return stab( angle, correction );
+        float sta = Pid.stab( Angle, correction);
+        // envoie les valeurs
+        if ( SEND == "Stability" ){sendUdp( Pid.get_sta());}
+        return sta ;
     }
 }
 
 // =============================================================================
 // ===                          MOTORS                                       ===
 // =============================================================================
-
 Motor6612 Mot;
+
 //************   change la vitesse des moteurs   ************
 void motorsSpeed( int speedM, int diff = 0 ){
     if ( !PAUSE ) Mot.Speed(speedM, diff );
@@ -522,11 +335,10 @@ void motorsSpeed( int speedM, int diff = 0 ){
 // =============================================================================
 // ===                          BATTERY                                      ===
 // =============================================================================
-
 Battery bat;
+
 //************   cherche la valeur de la batterie   ************
 void get_Battery() {sendUdp( "bat " + String(bat.get()) );}
-
 
 // =============================================================================
 // ===                            FILE                                       ===
@@ -538,7 +350,6 @@ bool loadConfig(){
     // open file for reading.
     File configFile = SPIFFS.open( "/balancebot/conf.txt", "r" );
     if (!configFile) return false;
-
     // Read content from config file.
     String content = configFile.readString();
     configFile.close();

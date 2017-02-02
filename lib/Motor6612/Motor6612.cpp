@@ -36,9 +36,7 @@ Motor6612::Motor6612(){
 }
 
 //************   Destruction   ************
-Motor6612::~Motor6612(){
-    /*nothing to destruct*/
-}
+Motor6612::~Motor6612(){/*nothing to destruct*/}
 
 //************   change la vitesse des moteurs   ************
 void Motor6612::Write(int speedL, int speedR){
