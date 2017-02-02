@@ -12,6 +12,8 @@
 #define MOTOR_R_F  12
 #define MOTOR_R_B  13
 
+bool PAUSE = true;
+
 //************   Creation   ************
 Motor::Motor(){
     //Motor Left SETUP
@@ -68,7 +70,8 @@ void Motor::Stop(){
 
 //************   change la vitesse des moteurs   ************
 void Motor::Speed( int speedM, int diff ){
-    Write( (speedM + diff)*2 , (speedM - diff)*2 );
+    if ( !PAUSE ) Write( (speedM + diff)*2 , (speedM - diff)*2 );
+    else Stop();
 }
 
 //************   freine les moteurs   ************
@@ -85,3 +88,7 @@ void Motor::Brake(){
     analogWrite( MOTOR_R_F, 0 );
     analogWrite( MOTOR_R_B, 0 );
 }
+
+void Motor::set_Pause( bool state ){ PAUSE = state ;}
+
+bool Motor::get_Pause(){ return PAUSE ;}

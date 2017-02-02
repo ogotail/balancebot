@@ -10,6 +10,9 @@
 // ************   UDP   ************
 #include <WiFiUdp.h>
 
+// ************   OTA   ************
+#include <ArduinoOTA.h>
+
 class Wifi{
     public:
         Wifi();
@@ -17,6 +20,8 @@ class Wifi{
         void connect();
         void send( String msg );
         String read();
+        void InitOta();
+        void checkOta();
 };
 
 #endif

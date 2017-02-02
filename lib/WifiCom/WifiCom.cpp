@@ -26,11 +26,10 @@ Wifi::Wifi(){/*nothing to Creat*/}
 //************   Destruction   ************
 Wifi::~Wifi(){/*nothing to destruct*/}
 
+//************   Connection   ************
 void Wifi::connect(){
     // essaye de ce connecter a un reseau
     // en premier a celui donne
-    //Serial.print( "Connection at : " );
-    //Serial.println( ssid );
     WiFi.mode( WIFI_STA );
     WiFi.begin( ssid, password );
     // si la connection est un echec
@@ -43,10 +42,6 @@ void Wifi::connect(){
         //Serial.println( myIP );
     }
     Udp.begin( localPort );
-    //else{
-    //    Serial.print( "Connected ! IP : " );
-    //    Serial.println( WiFi.localIP() );
-    //}
 }
 
 //************   Envoie   ************
@@ -71,4 +66,29 @@ String Wifi::read(){
         return packetBuffer ;
     }
     return "";
+}
+
+// =============================================================================
+// ===                            OTA                                        ===
+// =============================================================================
+
+//************   Initialisation   ************
+void Wifi::InitOta(){
+    // Configure la mise a jour par wifi
+    // Action a faire avant la mise a jour
+    ArduinoOTA.onStart([](){});
+    // Action a faire apres la mise a jour ( avant reboot )
+    ArduinoOTA.onEnd([](){});
+    // Action a faire pendans la mise a jour
+    ArduinoOTA.onProgress([]( unsigned int progress, unsigned int total ){});
+    // Action a faire en cas d erreur de la mise a jour
+    ArduinoOTA.onError([]( ota_error_t error ){});
+    ArduinoOTA.begin();
+    //Serial.println( "OTA Mode Ready" );
+}
+
+//************   Routine   ************
+void Wifi::checkOta(){
+    // a mettre dans la boucle pour attendre une mise a jour
+    ArduinoOTA.handle();
 }

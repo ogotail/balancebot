@@ -14,6 +14,8 @@
 #define MOTOR_R_B  13
 #define MOTOR_R_S  3
 
+bool PAUSE = true;
+
 //************   Creation   ************
 Motor::Motor(){
     //Motor Left SETUP
@@ -43,22 +45,22 @@ void Motor::Write(int speedL, int speedR){
     // ajuste la vitesse et direction des MOTORS
     if( speedR >= 0 ){
         digitalWrite( MOTOR_L_B, LOW);
-        analogWrite( MOTOR_L_S, speedR );
+        analogWrite( MOTOR_L_S, speedR +55 );
         digitalWrite( MOTOR_L_F, HIGH);
     }
     else{
         digitalWrite( MOTOR_L_F, LOW);
-        analogWrite( MOTOR_L_S, -speedR );
+        analogWrite( MOTOR_L_S, -speedR +55 );
         digitalWrite( MOTOR_L_B, HIGH);
     }
     if( speedL >= 0 ){
         digitalWrite( MOTOR_R_B, LOW);
-        analogWrite( MOTOR_R_S, speedL );
+        analogWrite( MOTOR_R_S, speedL +55 );
         digitalWrite( MOTOR_R_F, HIGH);
     }
     else{
         digitalWrite( MOTOR_R_F, LOW);
-        analogWrite( MOTOR_R_S, -speedL );
+        analogWrite( MOTOR_R_S, -speedL +55 );
         digitalWrite( MOTOR_R_B, HIGH);
     }
 }
@@ -72,7 +74,8 @@ void Motor::Stop(){
 
 //************   change la vitesse des moteurs   ************
 void Motor::Speed( int speedM, int diff ){
-    Write( speedM + diff, speedM - diff );
+    if ( !PAUSE ) Write( (speedM + diff)*2 , (speedM - diff)*2 );
+    else Stop();
 }
 
 //************   freine les moteurs   ************
@@ -93,3 +96,7 @@ void Motor::Brake(){
     analogWrite( MOTOR_L_S, 0 );
     analogWrite( MOTOR_R_S, 0 );
 }
+
+void Motor::set_Pause( bool state ){ PAUSE = state ;}
+
+bool Motor::get_Pause(){ return PAUSE ;}

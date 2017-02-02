@@ -10,9 +10,6 @@
 // ************   WIFI   ************
 #include <WifiCom.h>
 
-// ************   OTA   ************
-#include <ArduinoOTA.h>
-
 // ************   IMU   ************
 // need https://github.com/jrowberg/i2cdevlib/tree/master/Arduino/MPU6050
 #include "MPU6050_6Axis_MotionApps20.h"
@@ -51,8 +48,6 @@
 
 String MODE = "" ;
 
-bool PAUSE = true;
-
 // ************   COMMUNICATION   ************
 String SEND = "" ;
 
@@ -66,40 +61,11 @@ Encoder EncR( ENCODER_R_F, ENCODER_R_B );
 //************   WIFI   ************
 Wifi wifi;
 
-// =============================================================================
-// ===                            UDP                                        ===
-// =============================================================================
+//************   MOTOR   ************
+Motor Mot;
 
-//************   Envoie   ************
-void sendUdp(String msg){
-    // envoie le message au client
-    wifi.send(msg);
-}
-
-// =============================================================================
-// ===                            OTA                                        ===
-// =============================================================================
-
-//************   Initialisation   ************
-void InitOta(){
-    // Configure la mise a jour par wifi
-    // Action a faire avant la mise a jour
-    ArduinoOTA.onStart([](){});
-    // Action a faire apres la mise a jour ( avant reboot )
-    ArduinoOTA.onEnd([](){});
-    // Action a faire pendans la mise a jour
-    ArduinoOTA.onProgress([]( unsigned int progress, unsigned int total ){});
-    // Action a faire en cas d erreur de la mise a jour
-    ArduinoOTA.onError([]( ota_error_t error ){});
-    ArduinoOTA.begin();
-    //Serial.println( "OTA Mode Ready" );
-}
-
-//************   Routine   ************
-void checkOta(){
-    // a mettre dans la boucle pour attendre une mise a jour
-    ArduinoOTA.handle();
-}
+//************   PID   ************
+PID Pid;
 
 // =============================================================================
 // ===                            IMU                                        ===
@@ -192,13 +158,13 @@ float UpdateAngles(){
 
 //************   Initialisation   ************
 
-void EncLF(){sendUdp( "encoder L F " + String( digitalRead( ENCODER_L_F )));}
+void EncLF(){wifi.send( "encoder L F " + String( digitalRead( ENCODER_L_F )));}
 
-void EncLB(){sendUdp( "encoder L B " + String( digitalRead( ENCODER_L_B )));}
+void EncLB(){wifi.send( "encoder L B " + String( digitalRead( ENCODER_L_B )));}
 
-void EncRF(){sendUdp( "encoder R F " + String( digitalRead( ENCODER_R_F )));}
+void EncRF(){wifi.send( "encoder R F " + String( digitalRead( ENCODER_R_F )));}
 
-void EncRB(){sendUdp( "encoder R B " + String( digitalRead( ENCODER_R_B )));}
+void EncRB(){wifi.send( "encoder R B " + String( digitalRead( ENCODER_R_B )));}
 
 void InitManEnc(){
     pinMode( ENCODER_L_F, INPUT_PULLUP );
@@ -219,55 +185,12 @@ void StopEnc(){
 }
 
 // =============================================================================
-// ===                            PID                                        ===
-// =============================================================================
-PID Pid;
-
-//************   Modification des Coefficients   ************
-void set_pid( String data ){Pid.set(data);}
-
-//************   Envoie des Coefficients   ************
-String get_pid(){return Pid.get();}
-
-//************   Mise a jour des vitesses   ************
-int updateSpeed(float angle, float correction = 0 ){
-    // si chute
-    if ( angle > 30 || angle < -30 ){
-        ////Serial.print("chute\t");
-        if ( SEND == "Stability" ){
-             sendUdp( "Stability " + String( millis() ) + " "
-             + String( -angle ) + " 0 0 0 0 ");
-        }
-        // arret des moteurs
-        return 0;
-    }
-    // sinon calcul le PID
-    else{
-        float sta = Pid.stab( angle, correction);
-        // envoie les valeurs
-        if ( SEND == "Stability" ){sendUdp( Pid.get_sta());}
-        return sta;
-    }
-}
-
-// =============================================================================
-// ===                          MOTORS                                       ===
-// =============================================================================
-Motor Mot;
-
-//************   change la vitesse des moteurs   ************
-void motorsSpeed( int speedM, int diff = 0 ){
-    if ( !PAUSE ) Mot.Speed(speedM, diff );
-    else Mot.Stop();
-}
-
-// =============================================================================
 // ===                          BATTERY                                      ===
 // =============================================================================
 Battery bat;
 
 //************   cherche la valeur de la batterie   ************
-void get_Battery() {sendUdp( "bat " + String(bat.get()) );}
+void get_Battery() { wifi.send( "bat " + String(bat.get()) ); }
 
 // =============================================================================
 // ===                            FILE                                       ===
@@ -289,7 +212,7 @@ bool loadConfig(){
         content = content.substring( content.indexOf( " " ) + 1 );
        while ( !content.startsWith( "\r\n" ) ){
             int pos = content.indexOf( " ", content.indexOf( " " ) + 1 );
-            set_pid( content.substring( 0, pos ));
+            Pid.set( content.substring( 0, pos ));
             content = content.substring( pos + 1 );
         }
     }
@@ -302,7 +225,7 @@ bool saveConfig(){
     File configFile = SPIFFS.open( "/balancebot/conf.txt", "w+" );
     if ( !configFile ) return false;
     // Save PID
-    configFile.println( get_pid() );
+    configFile.println( Pid.get() );
     configFile.close();
     return true;
 }
@@ -311,31 +234,38 @@ bool saveConfig(){
 // ===                          PARSER                                       ===
 // =============================================================================
 
-void parser( String packet ){
-    //
-    if ( packet != "" ){
-        packet.trim() ;
-        //Serial.println( packet ) ;
-        sendUdp( "ar " + packet ) ;
-        String commande = packet.substring( 0, packet.indexOf(' ') ) ;
-        String data = packet.substring( packet.indexOf(' ') + 1 ) ;
+void receivemsg(){
+    String msg = wifi.read();
+    if ( msg && msg != "" ){
+        msg.trim();
+        wifi.send( "ar " + msg );
+        String commande = msg.substring( 0, msg.indexOf(' ') );
+        String data = msg.substring( msg.indexOf(' ') + 1 );
 
-        if ( commande == "set" ) set_pid( data ) ;
-        else if ( commande == "MODE" ) MODE = data.substring(0, data.indexOf(' '));
-        else if ( commande == "get" ) SEND = data.substring(0, data.indexOf(' '));
-        else if ( commande == "PID" ) sendUdp( get_pid() ) ;
-        else if ( commande == "save" ) sendUdp("save " + String( saveConfig()));
+        if ( commande == "set" ){
+            Pid.set( data ) ;
+        }
+        else if ( commande == "MODE" ){
+            MODE = data.substring(0, data.indexOf(' '));
+        }
+        else if ( commande == "get" ){
+            SEND = data.substring(0, data.indexOf(' '));
+        }
+        else if ( commande == "PID" ){
+            wifi.send( Pid.get() ) ;
+        }
+        else if ( commande == "save" ){
+            wifi.send("save " + String( saveConfig()));
+        }
         else if ( commande == "PAUSE" ){
-            if ( data.startsWith( "1" ) ) PAUSE = true;
-            else PAUSE = false;
-            sendUdp( "PAUSE " + String( PAUSE )) ;
+            if ( data.startsWith( "1" ) ) Mot.set_Pause( true );
+            else Mot.set_Pause( false );
+            wifi.send( "PAUSE " + String( Mot.get_Pause() ));
+        }
+        else {
+            wifi.send( "? " + msg );
         }
     }
-}
-
-void receivemsg(){
-    String msg = wifi.read() ;
-    if ( msg ) parser( msg ) ;
 }
 
 // =============================================================================
@@ -350,19 +280,27 @@ void ModeRun(){
         receivemsg() ;
         get_Battery();
         float angle = UpdateAngles();
-        if ( angle ) {
-            motorsSpeed( updateSpeed( angle  )); //, dep(), rot() );
+        if ( !angle || angle > 30 || angle < -30 ) {
+            Mot.Stop();
+            if ( SEND == "Stability" ){
+                 wifi.send( "Stability " + String( millis() ) + " "
+                 + String( angle ) + " 0 0 0 0 ");
+            }
+        }
+        else {
+            Mot.Speed( Pid.stab( angle ) );
+            if ( SEND == "Stability" ){ wifi.send( Pid.get_sta()); }
         }
     }
 }
 
 //************   OTA   ************
 void ModeOTA(){
-    InitOta();
+    wifi.InitOta();
     while ( MODE == "OTA" ){
         receivemsg() ;
         get_Battery();
-        checkOta();
+        wifi.checkOta();
     }
 }
 
@@ -387,9 +325,9 @@ void setup(){
 }
 
 void loop(){
-    receivemsg() ;
-    get_Battery() ;
+    receivemsg();
+    get_Battery();
     if ( MODE == "OTA" ) ModeOTA() ;
-    else if ( MODE == "RUN" ) ModeRun() ;
-    else if ( MODE == "CAL" ) Modecal() ;
+    else if ( MODE == "RUN" ) ModeRun();
+    else if ( MODE == "CAL" ) Modecal();
 }
