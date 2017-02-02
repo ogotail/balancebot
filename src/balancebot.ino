@@ -303,7 +303,7 @@ void set_pid( String data ){Pid.set(data);}
 String get_pid(){return Pid.get();}
 
 //************   Mise a jour des vitesses   ************
-int updateSpeed(float angle, float correction){
+int updateSpeed(float angle, float correction = 0 ){
     // si chute
     if ( angle > 30 || angle < -30 ){
         ////Serial.print("chute\t");
@@ -316,10 +316,10 @@ int updateSpeed(float angle, float correction){
     }
     // sinon calcul le PID
     else{
-        float sta = Pid.stab( Angle, correction);
+        float sta = Pid.stab( angle, correction);
         // envoie les valeurs
         if ( SEND == "Stability" ){sendUdp( Pid.get_sta());}
-        return sta ;
+        return sta;
     }
 }
 
@@ -425,10 +425,11 @@ void ModeRun(){
         receivemsg() ;
         get_Battery();
         //sendUdp( "RUN" ) ;
-        float angle;
-        angle = UpdateAngles();
-        if ( angle ) motorsSpeed( updateSpeed( angle , dep() )); //, rot() );
-        rot();
+        float angle = UpdateAngles();
+        if ( angle ) {
+            motorsSpeed( updateSpeed( angle  )); //, dep(), rot() );
+        }
+        //rot();
         //sendUdp( String( angle ) );
     }
 }
