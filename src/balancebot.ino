@@ -30,7 +30,9 @@
 #include <Encoder.h>
 
 //************   MOTEURS   ************
+// choix du driver des moteurs
 #include "Motor6612.h"
+//#include "Motor8833.h"
 
 //************   BATTERY   ************
 #include "Battery.h"
@@ -324,7 +326,7 @@ int updateSpeed(float angle, float correction){
 // =============================================================================
 // ===                          MOTORS                                       ===
 // =============================================================================
-Motor6612 Mot;
+Motor Mot;
 
 //************   change la vitesse des moteurs   ************
 void motorsSpeed( int speedM, int diff = 0 ){
@@ -392,10 +394,10 @@ void parser( String packet ){
         String data = packet.substring( packet.indexOf(' ') + 1 ) ;
 
         if ( commande == "set" ) set_pid( data ) ;
-        else if ( commande == "MODE" ) MODE = data.substring( 0, data.indexOf(' ') ) ;
-        else if ( commande == "get" ) SEND = data.substring( 0, data.indexOf(' ') ) ;
+        else if ( commande == "MODE" ) MODE = data.substring(0, data.indexOf(' '));
+        else if ( commande == "get" ) SEND = data.substring(0, data.indexOf(' '));
         else if ( commande == "PID" ) sendUdp( get_pid() ) ;
-        else if ( commande == "save" ) sendUdp( "save " + String( saveConfig()) ) ;
+        else if ( commande == "save" ) sendUdp("save " + String( saveConfig()));
         else if ( commande == "PAUSE" ){
             if ( data.startsWith( "1" ) ) PAUSE = true;
             else PAUSE = false;

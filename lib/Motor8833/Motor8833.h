@@ -1,5 +1,5 @@
-#ifndef Motor6612_H
-#define Motor6612_H
+#ifndef Motor8833_H
+#define Motor8833_H
 
 #include <Arduino.h>
 

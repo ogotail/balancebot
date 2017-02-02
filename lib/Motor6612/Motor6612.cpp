@@ -15,7 +15,7 @@
 #define MOTOR_R_S  3
 
 //************   Creation   ************
-Motor6612::Motor6612(){
+Motor::Motor(){
     //Motor Left SETUP
     pinMode(MOTOR_L_S, OUTPUT);
     analogWrite(MOTOR_L_S, 0);
@@ -36,10 +36,10 @@ Motor6612::Motor6612(){
 }
 
 //************   Destruction   ************
-Motor6612::~Motor6612(){/*nothing to destruct*/}
+Motor::~Motor(){/*nothing to destruct*/}
 
 //************   change la vitesse des moteurs   ************
-void Motor6612::Write(int speedL, int speedR){
+void Motor::Write(int speedL, int speedR){
     // ajuste la vitesse et direction des MOTORS
     if( speedR >= 0 ){
         digitalWrite( MOTOR_L_B, LOW);
@@ -64,19 +64,19 @@ void Motor6612::Write(int speedL, int speedR){
 }
 
 //************   arret des moteurs   ************
-void Motor6612::Stop(){
+void Motor::Stop(){
     // stop les MOTORs => roues libre
     analogWrite( MOTOR_L_S, 0 );
     analogWrite( MOTOR_R_S, 0 );
 }
 
 //************   change la vitesse des moteurs   ************
-void Motor6612::Speed( int speedM, int diff ){
+void Motor::Speed( int speedM, int diff ){
     Write( speedM + diff, speedM - diff );
 }
 
 //************   freine les moteurs   ************
-void Motor6612::Brake(){
+void Motor::Brake(){
     // Freine les MOTORs => roues Bloquees
     digitalWrite( MOTOR_L_F, HIGH );
     digitalWrite( MOTOR_L_B, HIGH );
