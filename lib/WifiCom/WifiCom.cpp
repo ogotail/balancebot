@@ -4,27 +4,11 @@
 
 #include "WifiCom.h"
 
-// ************   WIFI   ************
-const char* ssid = "CathyMath";
-const char* password = "4362626262";
-
-//************   Variables Udp  ************
-// local port to listen for UDP packets
-unsigned int localPort = 2390;
-IPAddress ipMulti ( 192,168,0,255 );
-// A UDP instance to let us send and receive packets over UDP
-WiFiUDP Udp;
-IPAddress Ip ;
-unsigned int Port ;
-//buffer to hold incoming and outgoing packets
-char packetBuffer[ UDP_TX_PACKET_MAX_SIZE ];
-bool CONNECTED = 0 ;
-
 //************   Creation   ************
-Wifi::Wifi(){/*nothing to Creat*/}
-
-//************   Destruction   ************
-Wifi::~Wifi(){/*nothing to destruct*/}
+Wifi::Wifi(){
+    IPAddress ipMulti( 192,168,0,255 );
+    // A UDP instance to let us send and receive packets over UDP
+}
 
 //************   Connection   ************
 void Wifi::connect(){

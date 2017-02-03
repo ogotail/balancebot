@@ -14,10 +14,9 @@
 #define MOTOR_R_B  13
 #define MOTOR_R_S  3
 
-bool PAUSE = true;
-
 //************   Creation   ************
 Motor::Motor(){
+    analogWriteRange(255);
     //Motor Left SETUP
     pinMode(MOTOR_L_S, OUTPUT);
     analogWrite(MOTOR_L_S, 0);
@@ -25,7 +24,6 @@ Motor::Motor(){
     digitalWrite(MOTOR_L_F, LOW);
     pinMode(MOTOR_L_B, OUTPUT);
     digitalWrite(MOTOR_L_B, LOW);
-
     //Motor Right SETUP
     pinMode(MOTOR_R_S, OUTPUT);
     analogWrite(MOTOR_R_S, 0);
@@ -33,12 +31,7 @@ Motor::Motor(){
     digitalWrite(MOTOR_R_F, LOW);
     pinMode(MOTOR_R_B, OUTPUT);
     digitalWrite(MOTOR_R_B, LOW);
-
-    analogWriteRange(255);
 }
-
-//************   Destruction   ************
-Motor::~Motor(){/*nothing to destruct*/}
 
 //************   change la vitesse des moteurs   ************
 void Motor::Write(int speedL, int speedR){
@@ -89,14 +82,17 @@ void Motor::Brake(){
     analogWrite( MOTOR_R_S, 255 );
 
     delay(100); // relache les roues apres 100ms pour pas tout cramer
+    analogWrite( MOTOR_L_S, 0 );
+    analogWrite( MOTOR_R_S, 0 );
     digitalWrite( MOTOR_L_F, LOW );
     digitalWrite( MOTOR_L_B, LOW );
     digitalWrite( MOTOR_R_F, LOW );
     digitalWrite( MOTOR_R_B, LOW );
-    analogWrite( MOTOR_L_S, 0 );
-    analogWrite( MOTOR_R_S, 0 );
 }
 
-void Motor::set_Pause( bool state ){ PAUSE = state ;}
+void Motor::set_Pause( bool state ){
+    Stop();
+    PAUSE = state ;
+}
 
 bool Motor::get_Pause(){ return PAUSE ;}

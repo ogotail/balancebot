@@ -4,10 +4,11 @@
 #include <Arduino.h>
 
 class Motor{
+    private:
+        bool PAUSE = true;
+        void Write( int speedL, int speedR );
     public:
         Motor();
-        ~Motor();
-        void Write( int speedL, int speedR );
         void Stop();
         void Speed( int speedM, int diff=0 );
         void Brake();

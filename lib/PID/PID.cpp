@@ -4,61 +4,6 @@
 
 #include "PID.h"
 
-//************   Coefficients   ************
-
-// kPID Stabilite
-float Kps = 39;
-float Kis = 6.6;
-float Kds = 59.5;
-float Vertical = 1.9;
-
-// kPID Deplacement
-float Kpd = 0.3;
-float Kid = 0;
-float Kdd = 2;
-int Origine = 0;
-
-// kPID Rotation
-float Kpr = 0;
-float Kir = 0;
-float Kdr = 0;
-int Direction = 0;
-
-//************   Variables   ************
-
-// variable pid Stabilisation
-float erreur_s ;
-float P_s ;
-float I_s ;
-float D_s ;
-float PID_s;
-float somme_erreurs_s = 0;
-float erreur_precedente_s = 0;
-
-// variable pid deplacement
-float erreur_d ;
-float P_d ;
-float I_d ;
-float D_d ;
-float PID_d;
-float somme_erreur_d = 0;
-int erreur_precedente_d = 0;
-
-// variable pid rotation
-float erreur_r ;
-float P_r ;
-float I_r ;
-float D_r ;
-float PID_r;
-float somme_erreur_r = 0;
-int erreur_precedente_r = 0;
-
-//************   Creation   ************
-PID::PID(){/*nothing to Creation*/}
-
-//************   Destruction   ************
-PID::~PID(){/*nothing to destruct*/}
-
 //************   Modification des Coefficients   ************
 void PID::set( String data ){
     String commande = data.substring( 0, data.indexOf(' ') );
@@ -116,14 +61,12 @@ float PID::stab(float Angle, float correction){
 }
 
 String PID::get_sta(){
-    return "Stability "
-            + String( millis() ) + " "
-            + String( erreur_s ) + " "
-            + String( PID_s ) + " "
-            + String( P_s ) + " "
-            + String( I_s ) + " "
-            + String( D_s ) + " "
-            ;
+    return "Stability " + String( millis() ) + " "
+                        + String( erreur_s ) + " "
+                        + String( PID_s ) + " "
+                        + String( P_s ) + " "
+                        + String( I_s ) + " "
+                        + String( D_s ) + " " ;
 }
 
 //************   Calcul du PID de deplacement   ************
@@ -147,14 +90,12 @@ float PID::dep( int EncL, int EncR, int consigne ){
 }
 
 String PID::get_dep(){
-    return "Deplacement "
-            + String( millis() ) + " "
-            + String( erreur_d ) + " "
-            + String( PID_d ) + " "
-            + String( P_d ) + " "
-            + String( I_d ) + " "
-            + String( D_d ) + " "
-            ;
+    return "Deplacement " + String( millis() ) + " "
+                            + String( erreur_d ) + " "
+                            + String( PID_d ) + " "
+                            + String( P_d ) + " "
+                            + String( I_d ) + " "
+                            + String( D_d ) + " ";
 }
 
 //************   Calcul du PID de rotation   ************
@@ -178,14 +119,12 @@ float PID::rot( int EncL, int EncR, int consigne ){
 }
 
 String PID::get_rot(){
-    return "Rotation "
-            + String( millis() ) + " "
-            + String( erreur_r ) + " "
-            + String( PID_r ) + " "
-            + String( P_r ) + " "
-            + String( I_r ) + " "
-            + String( D_r ) + " "
-            ;
+    return "Rotation " + String( millis() ) + " "
+                        + String( erreur_r ) + " "
+                        + String( PID_r ) + " "
+                        + String( P_r ) + " "
+                        + String( I_r ) + " "
+                        + String( D_r ) + " " ;
 }
 
 

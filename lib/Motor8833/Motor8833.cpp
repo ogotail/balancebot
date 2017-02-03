@@ -12,31 +12,20 @@
 #define MOTOR_R_F  12
 #define MOTOR_R_B  13
 
-bool PAUSE = true;
-
 //************   Creation   ************
 Motor::Motor(){
+    analogWriteRange(255);
     //Motor Left SETUP
-    //pinMode(MOTOR_L_S, OUTPUT);
-    //analogWrite(MOTOR_L_S, 0);
     pinMode(MOTOR_L_F, OUTPUT);
     analogWrite(MOTOR_L_F, 0);
     pinMode(MOTOR_L_B, OUTPUT);
     analogWrite(MOTOR_L_B, 0);
-
     //Motor Right SETUP
-    //pinMode(MOTOR_R_S, OUTPUT);
-    //analogWrite(MOTOR_R_S, 0);
     pinMode(MOTOR_R_F, OUTPUT);
     analogWrite(MOTOR_R_F, 0);
     pinMode(MOTOR_R_B, OUTPUT);
     analogWrite(MOTOR_R_B, 0);
-
-    analogWriteRange(255);
 }
-
-//************   Destruction   ************
-Motor::~Motor(){/*nothing to destruct*/}
 
 //************   change la vitesse des moteurs   ************
 void Motor::Write(int speedL, int speedR){
@@ -89,6 +78,9 @@ void Motor::Brake(){
     analogWrite( MOTOR_R_B, 0 );
 }
 
-void Motor::set_Pause( bool state ){ PAUSE = state ;}
+void Motor::set_Pause( bool state ){
+    Stop();
+    PAUSE = state ;
+}
 
 bool Motor::get_Pause(){ return PAUSE ;}
