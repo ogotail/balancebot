@@ -59,7 +59,7 @@ void Motor::Stop(){
 
 //************   change la vitesse des moteurs   ************
 void Motor::Speed( int speedM, int diff ){
-    if ( !PAUSE ) Write( (speedM + diff)*2 , (speedM - diff)*2 );
+    if ( !PAUSE ) Write( (speedM + diff) , (speedM - diff) );
     else Stop();
 }
 

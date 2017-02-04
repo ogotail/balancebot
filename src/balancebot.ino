@@ -10,10 +10,8 @@
 // ************   WIFI   ************
 #include <WifiCom.h>
 
-// ************   IMU   ************
-// need https://github.com/jrowberg/i2cdevlib/tree/master/Arduino/MPU6050
-#include "MPU6050_6Axis_MotionApps20.h"
-//#include "IMU.h"
+// ************   MPU   ************
+#include <MPU.h>
 
 // ************   ENCODER   ************
 // need https://github.com/PaulStoffregen/Encoder
@@ -21,14 +19,14 @@
 
 //************   MOTEURS   ************
 // choix du driver des moteurs
-#include "Motor6612.h"
-//#include "Motor8833.h"
+//#include "Motor6612.h"
+#include "Motor8833.h"
 
 //************   BATTERY   ************
 #include "Battery.h"
 
 //************   PID   ************
-#include "PID.h"
+//#include "PID.h"
 
 // =============================================================================
 // ===                      PIN Configuration                                ===
@@ -55,8 +53,8 @@ String SEND = "" ;
 Encoder EncL( ENCODER_L_F, ENCODER_L_B );
 Encoder EncR( ENCODER_R_F, ENCODER_R_B );
 
-//************   IMU   ************
-//IMU Imu6050;
+//************   MPU   ************
+MPU mpu;
 
 //************   WIFI   ************
 Wifi wifi;
@@ -65,92 +63,7 @@ Wifi wifi;
 Motor Mot;
 
 //************   PID   ************
-PID Pid;
-
-// =============================================================================
-// ===                            IMU                                        ===
-// =============================================================================
-
-//************   IMU   ************
-// I2C
-#define IMU_SDA 10
-#define IMU_SCL 9
-// interuption
-#define IMU_INT 14
-
-//************   Variables   ************
-MPU6050 mpu;
-
-// status vars
-bool dmpReady = false;  // set true if DMP init was successful
-uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
-//uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
-
-// MPU control
-uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
-uint16_t fifoCount;     // count of all bytes currently in FIFO
-uint8_t fifoBuffer[64]; // FIFO storage buffer
-
-// orientation/motion vars
-Quaternion q;           // [w, x, y, z]         quaternion container
-VectorFloat gravity;    // [x, y, z]            gravity vector
-float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
-
-//************   Initialisation   ************
-void InitImu(){
-    // join I2C bus (I2Cdev library doesn't do this automatically)
-    Wire.begin( IMU_SDA, IMU_SCL );
-    // initialize device
-    mpu.initialize();
-    // verify connection
-    mpu.testConnection();
-    // load and configure the DMP
-    devStatus = mpu.dmpInitialize();
-    // Setup Accel offsets
-    mpu.setXAccelOffset(-7029);
-    mpu.setYAccelOffset(-1294);
-    mpu.setZAccelOffset(1200);
-    // Setup gyro offsets
-    mpu.setXGyroOffset(147);
-    mpu.setYGyroOffset(72);
-    mpu.setZGyroOffset(25);
-    // make sure it worked (returns 0 if so)
-    if (devStatus == 0){
-        // turn on the DMP, now that it's ready
-        mpu.setDMPEnabled(true);
-        // set our DMP Ready flag so the main loop() function knows it's okay to use it
-        dmpReady = true;
-        // get expected DMP packet size for later comparison
-        packetSize = mpu.dmpGetFIFOPacketSize();
-    }
-}
-
-//************   Mise a jour des angles   ************
-float UpdateAngles(){
-    if ( dmpReady ){
-        // get current FIFO count
-        fifoCount = mpu.getFIFOCount();
-        // verifie si un packet est present
-        // A CHANGER !!! pour utiliser les interuptions ( if => while )
-        if ( fifoCount < packetSize) return 0;
-        else {
-            // read all packet from FIFO until the last
-            while (fifoCount >= packetSize){
-                mpu.getFIFOBytes(fifoBuffer, packetSize);
-                fifoCount = mpu.getFIFOCount();
-            }
-            // nettoie les miettes
-            if (fifoCount != 0) mpu.resetFIFO();
-            // Transformation geometrique
-            mpu.dmpGetQuaternion(&q, fifoBuffer);
-            mpu.dmpGetGravity(&gravity, &q);
-            mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-            // et renvoie l angle par rapport la vertical en degree
-            return (ypr[1] * 180/M_PI);
-        }
-    }
-    else return 0;
-}
+//PID Pid;
 
 // =============================================================================
 // ===                          ENCODER                                      ===
@@ -212,7 +125,7 @@ bool loadConfig(){
         content = content.substring( content.indexOf( " " ) + 1 );
        while ( !content.startsWith( "\r\n" ) ){
             int pos = content.indexOf( " ", content.indexOf( " " ) + 1 );
-            Pid.set( content.substring( 0, pos ));
+            //Pid.set( content.substring( 0, pos ));
             content = content.substring( pos + 1 );
         }
     }
@@ -225,7 +138,7 @@ bool saveConfig(){
     File configFile = SPIFFS.open( "/balancebot/conf.txt", "w+" );
     if ( !configFile ) return false;
     // Save PID
-    configFile.println( Pid.get() );
+    //configFile.println( Pid.get() );
     configFile.close();
     return true;
 }
@@ -243,7 +156,7 @@ void receivemsg(){
         String data = msg.substring( msg.indexOf(' ') + 1 );
 
         if ( commande == "set" ){
-            Pid.set( data ) ;
+            //Pid.set( data ) ;
         }
         else if ( commande == "MODE" ){
             MODE = data.substring(0, data.indexOf(' '));
@@ -252,7 +165,7 @@ void receivemsg(){
             SEND = data.substring(0, data.indexOf(' '));
         }
         else if ( commande == "PID" ){
-            wifi.send( Pid.get() ) ;
+            //wifi.send( Pid.get() ) ;
         }
         else if ( commande == "save" ){
             wifi.send("save " + String( saveConfig()));
@@ -269,28 +182,56 @@ void receivemsg(){
 }
 
 // =============================================================================
+// ===                           PID                                        ===
+// =============================================================================
+
+float pitch ;
+float gyro ;
+float Kp = 20 ;
+float Ki = 10 ;
+float Kd = 0.01 ;
+float Kr = 10 ;
+
+void PID(){
+    long encL = EncL.read() ;
+    long encR = EncR.read() ;
+    mpu.update( &pitch, &gyro );
+    if ( pitch > 30 || pitch < -30 ) {
+        Mot.Stop();
+        if ( SEND == "Stability" ){
+             wifi.send( "Stability " + String( millis() ) + " "
+                        + String( pitch ) + " 0 0 0 0 "
+            );
+        }
+    }
+    else {
+        int speed = pitch * Kp + ( encL + encR ) * Ki + gyro * Kd ;
+        int rot = ( encL - encR ) * Kr ;
+        Mot.Speed( speed, rot );
+        if ( SEND == "Stability" ){
+            wifi.send( "Stability " + String( millis() ) + " "
+                        + String( pitch ) + " "
+                        + String( speed ) + " "
+                        + String( pitch * Kp ) + " "
+                        + String( ( encL + encR ) * Ki ) + " "
+                        + String( gyro * Kd ) + " "
+            );
+        }
+    }
+}
+
+// =============================================================================
 // ===                           MODE                                        ===
 // =============================================================================
 
 //************   Run   ************
 void ModeRun(){
-    InitImu();
+    mpu.init_sensor();
     loadConfig();
     while ( MODE == "RUN" ){
         receivemsg() ;
         get_Battery();
-        float angle = UpdateAngles();
-        if ( !angle || angle > 30 || angle < -30 ) {
-            Mot.Stop();
-            if ( SEND == "Stability" ){
-                 wifi.send( "Stability " + String( millis() ) + " "
-                 + String( angle ) + " 0 0 0 0 ");
-            }
-        }
-        else {
-            Mot.Speed( Pid.stab( angle ) );
-            if ( SEND == "Stability" ){ wifi.send( Pid.get_sta()); }
-        }
+        PID();
     }
 }
 
@@ -306,7 +247,7 @@ void ModeOTA(){
 
 //************   Cal   ************
 void  Modecal(){
-    InitImu();
+    mpu.init_sensor();
     InitManEnc();
     while ( MODE == "CAL" ){
         receivemsg() ;
