@@ -8,12 +8,13 @@ class Motor{
         bool PAUSE = true;
         void Write( int speedL, int speedR );
     public:
-        Motor();
+        Motor( int pmlf = 12, int pmlr = 14 , int pmrf = 15 , int pmrb = 13 );
         void Stop();
-        void Speed( int speedM, int diff=0 );
+        void Speed( int speedM, int diff = 0 );
         void Brake();
         void set_Pause( bool state );
         bool get_Pause();
+        void test();
 };
 
 #endif

@@ -9,6 +9,8 @@ int error ;
 int a_scale ;
 double g_scale ;
 #define MPU6050_I2C_ADDRESS 104
+int sda ;
+int scl ;
 
 //#define DEBUG_MPU
 
@@ -49,6 +51,11 @@ union accel_t_gyro_union{
     } value;
 };
 
+MPU::MPU( int pin_sda, int pin_scl ){
+    sda = pin_sda ;
+    scl = pin_scl ;
+}
+
 int MPU::read( int start, uint8_t *buffer, int size ){
     int i, n ;
     Wire.beginTransmission( MPU6050_I2C_ADDRESS );
@@ -86,14 +93,14 @@ int MPU::write_reg( int reg, uint8_t data ){
     return write( reg, &data, 1 );
 }
 
-void MPU::init_sensor( int sda, int scl ){
+void MPU::init_sensor(){
     byte buf_read = 0x00 ;
     Wire.begin( sda, scl );
     Wire.setClock(400000);
     // test connection
     error = read_reg( 0x75, &buf_read );
     #ifdef DEBUG_MPU
-        Serial.begin();
+        if ( !Serial) Serial.begin( 115200 );
         Serial.print( F( "connection, error = " ));
         Serial.println( error, DEC );
         Serial.print( F( "chip_id = " ));

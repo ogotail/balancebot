@@ -1,32 +1,31 @@
 // =============================================================================
-// ===                         Librairie                                     ===
+// ===                         Librairy                                      ===
 // =============================================================================
 
 #include <Arduino.h>
-
 // ************   FILE   ************
 #include <FS.h>
-
 // ************   WIFI   ************
 #include <WifiCom.h>
-
 // ************   MPU   ************
 #include <MPU.h>
-
 // ************   ENCODER   ************
 // need https://github.com/PaulStoffregen/Encoder
 #include <Encoder.h>
-
 //************   MOTEURS   ************
 // choix du driver des moteurs
 //#include "Motor6612.h"
 #include "Motor8833.h"
-
 //************   BATTERY   ************
 #include "Battery.h"
 
-//************   PID   ************
-//#include "PID.h"
+// =============================================================================
+// ===                            DEBUG                                      ===
+// =============================================================================
+
+#define DEBUG_MOTOR
+
+#define DEBUG_MPU
 
 // =============================================================================
 // ===                      PIN Configuration                                ===
@@ -34,36 +33,45 @@
 
 //************   ENCODER   ************
 // ENCODER Left
-#define ENCODER_L_F  4
-#define ENCODER_L_B  5
+#define ENCODER_L_F  D1
+#define ENCODER_L_B  D2
 // ENCODER Right
-#define ENCODER_R_F  1
-#define ENCODER_R_B  15
+#define ENCODER_R_F  D7
+#define ENCODER_R_B  D6
+
+//************   MOTEURS   ************
+// Motor Left
+#define MOTOR_L_F  10
+#define MOTOR_L_B  9
+// MOTOR Right
+#define MOTOR_R_F  D5
+#define MOTOR_R_B  D8
+
+//************   MPU   ************
+#define MPU_SDA  D3
+#define MPU_SCL  D4
 
 // =============================================================================
 // ===                       Variable Global                                 ===
 // =============================================================================
 
-String MODE = "" ;
+String MODE = "RUN" ;
 
 // ************   COMMUNICATION   ************
-String SEND = "" ;
+String SEND = "Stability" ;
 
 //************   ENCODER   ************
 Encoder EncL( ENCODER_L_F, ENCODER_L_B );
 Encoder EncR( ENCODER_R_F, ENCODER_R_B );
 
 //************   MPU   ************
-MPU mpu;
+MPU mpu( MPU_SDA, MPU_SCL );
 
 //************   WIFI   ************
 Wifi wifi;
 
 //************   MOTOR   ************
-Motor Mot;
-
-//************   PID   ************
-//PID Pid;
+Motor Mot( MOTOR_L_F, MOTOR_L_B, MOTOR_R_F, MOTOR_R_B );
 
 // =============================================================================
 // ===                          ENCODER                                      ===
@@ -186,11 +194,15 @@ void receivemsg(){
 // =============================================================================
 
 float pitch ;
+float Ps = 0 ;
 float gyro ;
-float Kp = 20 ;
-float Ki = 10 ;
-float Kd = 0.01 ;
-float Kr = 10 ;
+float Gs = 0 ;
+int cor_g = 240 ;
+
+float Kp = 100 ;
+float Ki = 0 ;
+float Kd = 0.1 ;
+float Kr = 0 ;
 
 void PID(){
     long encL = EncL.read() ;
@@ -198,26 +210,39 @@ void PID(){
     mpu.update( &pitch, &gyro );
     if ( pitch > 30 || pitch < -30 ) {
         Mot.Stop();
-        if ( SEND == "Stability" ){
-             wifi.send( "Stability " + String( millis() ) + " "
-                        + String( pitch ) + " 0 0 0 0 "
-            );
-        }
+        if ( SEND == "Stability" ){ s_stab( pitch, 0, 0, 0, gyro );}
     }
     else {
-        int speed = pitch * Kp + ( encL + encR ) * Ki + gyro * Kd ;
+        Ps = ( pitch + Ps ) / 2 ;
+        Gs = (Gs - gyro - cor_g) / 2 ;
+        int speed = Ps * Kp + ( encL + encR ) * Ki + Gs* Kd ;
         int rot = ( encL - encR ) * Kr ;
         Mot.Speed( speed, rot );
         if ( SEND == "Stability" ){
-            wifi.send( "Stability " + String( millis() ) + " "
-                        + String( pitch ) + " "
-                        + String( speed ) + " "
-                        + String( pitch * Kp ) + " "
-                        + String( ( encL + encR ) * Ki ) + " "
-                        + String( gyro * Kd ) + " "
-            );
+            s_stab( pitch, speed, Ps * Kp, ( encL + encR )* Ki, Gs * Kd );
         }
     }
+}
+
+void s_stab( float angle, int Pid, int P, int I, int D){
+    wifi.send(
+        "Stability "
+        + String( millis() ) + " "
+        + String( angle ) + " "
+        + String( Pid ) + " "
+        + String( P ) + " "
+        + String( I ) + " "
+        + String( D ) + " "
+    );
+    Serial.println(
+        "Stability "
+        + String( millis() ) + " "
+        + String( angle ) + " "
+        + String( Pid ) + " "
+        + String( P ) + " "
+        + String( I ) + " "
+        + String( D ) + " "
+    );
 }
 
 // =============================================================================
@@ -231,6 +256,8 @@ void ModeRun(){
     while ( MODE == "RUN" ){
         receivemsg() ;
         get_Battery();
+        //if ( !Serial ) Serial.begin( 115200 );
+        //Serial.println( F( "PID" ));
         PID();
     }
 }
@@ -260,7 +287,13 @@ void  Modecal(){
 // ===                           MAIN                                        ===
 // =============================================================================
 
+//#ifdef DEBUG_MOTOR
+//    Mot.test();
+//#endif
+
 void setup(){
+    if ( !Serial ) Serial.begin( 115200 );
+    Serial.println( F( "INIT" ));
     wifi.connect();
     get_Battery();
 }

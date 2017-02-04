@@ -13,7 +13,8 @@ class MPU{
         int write( int start, const uint8_t *pData, int size );
         int write_reg( int reg, uint8_t data );
     public:
-        void init_sensor( int sda = 12, int scl = 14 );
+        MPU( int pin_sda = 9, int pin_scl = 10 );
+        void init_sensor();
         void update( float *pPitch, float *pGyro );
 };
 
