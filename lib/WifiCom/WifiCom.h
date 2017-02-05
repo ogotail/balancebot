@@ -21,8 +21,8 @@ class Wifi{
         //buffer to hold incoming and outgoing packets
         char packetBuffer[ UDP_TX_PACKET_MAX_SIZE ];
         bool CONNECTED = 0 ;
-        const char* ssid = "CathyMath";
-        const char* password = "4362626262";
+        const char* ssid = "WIFI_NAME";
+        const char* password = "123456789";
         WiFiUDP Udp;
         IPAddress Ip ;
 
