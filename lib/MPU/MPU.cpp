@@ -12,6 +12,10 @@ double g_scale ;
 int sda ;
 int scl ;
 
+// =============================================================================
+// ===                            DEBUG                                      ===
+// =============================================================================
+
 //#define DEBUG_MPU
 
 // Declaring an union for the registers and the axis values.

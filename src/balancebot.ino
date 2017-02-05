@@ -23,9 +23,15 @@
 // ===                            DEBUG                                      ===
 // =============================================================================
 
+#define TEST_MOTOR
 #define DEBUG_MOTOR
 
+#define TEST_MPU
 #define DEBUG_MPU
+
+#define DEBUG_WIFI
+
+#define DEBUG_PID
 
 // =============================================================================
 // ===                      PIN Configuration                                ===
@@ -111,7 +117,7 @@ void StopEnc(){
 Battery bat;
 
 //************   cherche la valeur de la batterie   ************
-void get_Battery() { wifi.send( "bat " + String(bat.get()) ); }
+void get_Battery() { wifi.send( "bat " + String( bat.get() )); }
 
 // =============================================================================
 // ===                            FILE                                       ===
@@ -193,56 +199,55 @@ void receivemsg(){
 // ===                           PID                                        ===
 // =============================================================================
 
+int PID = 0 ;
 float pitch ;
-float Ps = 0 ;
+float P = 0 ;
+int I = 0 ;
 float gyro ;
-float Gs = 0 ;
+float D = 0 ;
 int cor_g = 240 ;
+
+int ROT = 0 ;
 
 float Kp = 100 ;
 float Ki = 0 ;
 float Kd = 0.1 ;
 float Kr = 0 ;
 
+void send_PID(){
+    string msg = (
+                "Stability "
+                + String( millis() ) + " "
+                + String( pitch ) + " "
+                + String( PID ) + " "
+                + String( P ) + " "
+                + String( I ) + " "
+                + String( D ) + " "
+    );
+    if ( SEND == "Stability" ){ wifi.send( msg );}
+    #ifdef DEBUG_PID
+        Serial.println( msg );
+    #endif
+}
+
 void PID(){
-    long encL = EncL.read() ;
-    long encR = EncR.read() ;
     mpu.update( &pitch, &gyro );
     if ( pitch > 30 || pitch < -30 ) {
         Mot.Stop();
-        if ( SEND == "Stability" ){ s_stab( pitch, 0, 0, 0, gyro );}
+        if ( SEND == "Stability" ){ s_stab( pitch, 0, 0, 0, 0 );}
     }
     else {
-        Ps = ( pitch + Ps ) / 2 ;
-        Gs = (Gs - gyro - cor_g) / 2 ;
-        int speed = Ps * Kp + ( encL + encR ) * Ki + Gs* Kd ;
-        int rot = ( encL - encR ) * Kr ;
-        Mot.Speed( speed, rot );
-        if ( SEND == "Stability" ){
-            s_stab( pitch, speed, Ps * Kp, ( encL + encR )* Ki, Gs * Kd );
+        P = ( P + kp * pitch ) / 2 ;
+        long encL = EncL.read() ;
+        long encR = EncR.read() ;
+        I = ( encL + encR )* Ki ;
+        D = ( D - (gyro + cor_g) * Kd ) / 2 ;
+        PID = P + I + D ;
+        ROT = ( encL - encR ) * Kr ;
+        Mot.Speed( PID, ROT );
+        send_PID()
         }
     }
-}
-
-void s_stab( float angle, int Pid, int P, int I, int D){
-    wifi.send(
-        "Stability "
-        + String( millis() ) + " "
-        + String( angle ) + " "
-        + String( Pid ) + " "
-        + String( P ) + " "
-        + String( I ) + " "
-        + String( D ) + " "
-    );
-    Serial.println(
-        "Stability "
-        + String( millis() ) + " "
-        + String( angle ) + " "
-        + String( Pid ) + " "
-        + String( P ) + " "
-        + String( I ) + " "
-        + String( D ) + " "
-    );
 }
 
 // =============================================================================
@@ -256,8 +261,6 @@ void ModeRun(){
     while ( MODE == "RUN" ){
         receivemsg() ;
         get_Battery();
-        //if ( !Serial ) Serial.begin( 115200 );
-        //Serial.println( F( "PID" ));
         PID();
     }
 }
@@ -287,21 +290,41 @@ void  Modecal(){
 // ===                           MAIN                                        ===
 // =============================================================================
 
-//#ifdef DEBUG_MOTOR
-//    Mot.test();
-//#endif
+#ifdef NORMAL
+    void setup(){
+        if ( !Serial ) Serial.begin( 115200 );
+        Serial.println( F( "INIT" ));
+        wifi.connect();
+        get_Battery();
+    }
 
-void setup(){
-    if ( !Serial ) Serial.begin( 115200 );
-    Serial.println( F( "INIT" ));
-    wifi.connect();
-    get_Battery();
-}
+    void loop(){
+        receivemsg();
+        get_Battery();
+        if ( MODE == "OTA" ) ModeOTA() ;
+        else if ( MODE == "RUN" ) ModeRun();
+        else if ( MODE == "CAL" ) Modecal();
+    }
+#endif
 
-void loop(){
-    receivemsg();
-    get_Battery();
-    if ( MODE == "OTA" ) ModeOTA() ;
-    else if ( MODE == "RUN" ) ModeRun();
-    else if ( MODE == "CAL" ) Modecal();
-}
+// =============================================================================
+// ===                           TEST                                        ===
+// =============================================================================
+
+#ifdef TEST_MPU
+    #define DEBUG_MPU
+    void setup() {
+        Serial.begin( 115200 );
+        mpu.init_sensor();
+    }
+    void loop() {
+        delay( 1000 );
+        mpu.update();
+    }
+#endif
+
+#ifdef TEST_MOTOR
+    #define DEBUG_MOTOR
+    void setup() { Serial.begin( 115200 ); }
+    void loop() { Mot.test() ;}
+#endif

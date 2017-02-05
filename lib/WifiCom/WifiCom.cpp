@@ -4,6 +4,12 @@
 
 #include "WifiCom.h"
 
+// =============================================================================
+// ===                            DEBUG                                      ===
+// =============================================================================
+
+//#define DEBUG_WIFI
+
 //************   Creation   ************
 Wifi::Wifi(){
     IPAddress ipMulti( 192,168,0,255 );
@@ -12,6 +18,11 @@ Wifi::Wifi(){
 
 //************   Connection   ************
 void Wifi::connect(){
+    #ifdef DEBUG_WIFI
+        if ( !Serial ) Serial.begin( 115200 );
+        Serial.print( F( "Try to connect at : " ));
+        Serial.print( ssid );
+    #endif
     // essaye de ce connecter a un reseau
     // en premier a celui donne
     WiFi.mode( WIFI_STA );
@@ -19,12 +30,20 @@ void Wifi::connect(){
     // si la connection est un echec
     if( WiFi.waitForConnectResult() != WL_CONNECTED ){
         // cree un reseau
-        //Serial.println( "Connection Failed! Configuring access point..." );
-        //Serial.print( "ESSID : testapesp   IP : " );
         WiFi.softAP( "testapesp" );
         IPAddress myIP = WiFi.softAPIP();
-        //Serial.println( myIP );
+        #ifdef DEBUG_WIFI
+            Serial.println(F("Connection Failed! Configuring access point : "));
+            Serial.print( F( "ESSID : testapesp  IP : " ));
+            Serial.println( myIP );
+        }
+        else {
+            Serial.print( F( "Connected, IP : " ));
+            Serial.println( WiFi.localIP() );
+        #endif
     }
+    #ifdef DEBUG_WIFI
+    #endif
     Udp.begin( localPort );
 }
 

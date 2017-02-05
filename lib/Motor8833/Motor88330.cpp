@@ -72,13 +72,13 @@ void Motor::Stop(){
 
 //************   change la vitesse des moteurs   ************
 void Motor::Speed( int speedM, int diff ){
-    if ( !pause ){
+    if ( pause || speedM == 0 ) Stop() ;
+    else {
         Write(
             constrain( speedM + diff, -1024, 1024 ),
             constrain( speedM - diff, -1024, 1024 )
         );
     }
-    else Stop();
 }
 
 //************   freine les moteurs   ************
@@ -147,5 +147,6 @@ void Motor::test(){
             delay( 100 );
         }
         Stop();
+        delay( 1000 );
     #endif
 }
